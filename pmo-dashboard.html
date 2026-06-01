@@ -366,6 +366,68 @@
     .chart-title { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
     .chart-wrap  { position: relative; height: 240px; }
 
+    /* ── PORTFOLIO OVERVIEW ─────────────────────────────────────────────── */
+    .pf-global {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 24px;
+      display: flex; gap: 0; margin-bottom: 8px; flex-wrap: wrap;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .pf-global-block {
+      flex: 1; min-width: 200px; padding: 6px 20px;
+      border-radius: 8px; cursor: pointer; transition: background 0.15s;
+    }
+    .pf-global-block:first-child { padding-left: 4px; }
+    .pf-global-block:hover { background: var(--bg-hover); }
+    .pf-global-title {
+      font-size: .75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--text-muted); margin-bottom: 10px;
+    }
+    .pf-global-sep { width: 1px; background: var(--border); margin: 0 4px; align-self: stretch; }
+    .pf-global-stats { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+    .pf-gstat { font-size: .88rem; font-weight: 600; white-space: nowrap; }
+
+    .pf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 16px;
+    }
+    .pf-card {
+      background: var(--bg-surface); border: 2px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      transition: background 0.2s, box-shadow 0.15s;
+    }
+    .pf-card:hover { box-shadow: 0 4px 20px var(--shadow); }
+    .pf-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+    }
+    .pf-name  { font-weight: 700; font-size: .95rem; color: var(--text-primary); }
+    .pf-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700;
+    }
+    .pf-boards  { display: flex; }
+    .pf-divider { width: 1px; background: var(--border); flex-shrink: 0; }
+    .pf-section {
+      flex: 1; padding: 14px 18px; cursor: pointer; transition: background 0.15s; min-width: 0;
+    }
+    .pf-section:hover { background: var(--bg-hover); }
+    .pf-section.pf-empty { cursor: default; }
+    .pf-section.pf-empty:hover { background: transparent; }
+    .pf-section-head {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+    }
+    .pf-section-label {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--text-muted);
+    }
+    .pf-go { font-size: .7rem; color: var(--accent-light); opacity: 0; transition: opacity 0.15s; }
+    .pf-section:hover .pf-go { opacity: 1; }
+    .pf-stats { display: flex; flex-direction: column; gap: 5px; }
+    .pf-stat  { display: flex; align-items: center; gap: 7px; font-size: .82rem; color: var(--text-secondary); }
+    .pf-dot   { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
     /* ── PM HEALTH CARDS ─────────────────────────────────────────────────── */
     .pm-health-row {
       display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px;
@@ -526,6 +588,7 @@
   //   2. Implementa la función load(container) que renderiza el contenido
   // ════════════════════════════════════════════════════════════════════════════
   const PAGES = [
+    { id: "overview",    label: "Overview",    icon: "◎", subtitle: "Resumen de portafolios PMO", load: loadOverview },
     { id: "iniciativas", label: "Iniciativas", icon: "◈", subtitle: "Board de iniciativas PMO · Monday.com", load: loadIniciativas },
     { id: "req",         label: "REQ",          icon: "◆", subtitle: "Requerimientos VALOR Lite · Monday.com", load: loadReq },
     { id: "page3",       label: "Dashboard 3", icon: "◉", subtitle: "Próximamente", load: null },
@@ -539,6 +602,8 @@
   let activePage     = null;
   let countdownTimer = null;
   let remaining      = REFRESH_SECS;
+  let iniInitialPM   = null;
+  let reqInitialPM   = null;
 
   function buildNav() {
     document.getElementById("nav-list").innerHTML = PAGES.map(p => `
@@ -1020,7 +1085,9 @@
   function iniReset() { iniPMs=[]; iniStatuses=[]; iniEstado=""; iniSinAgendar=false; iniRefresh(); }
 
   function iniRender(container, items) {
-    iniData=iniProcess(items); iniPMs=[]; iniStatuses=[]; iniEstado="";
+    iniData=iniProcess(items);
+    iniPMs = iniInitialPM ? [iniInitialPM] : []; iniInitialPM = null;
+    iniStatuses=[]; iniEstado="";
     container.innerHTML = `
       <div id="ini-filters"></div>
       <div id="ini-cards"></div>
@@ -1378,7 +1445,9 @@
   function reqReset()               { reqPMs=[]; reqStatuses=[]; reqGroups=[]; reqFase=""; reqEstado=""; reqRefresh(); }
 
   function reqRender(container, items) {
-    reqData=reqProcess(items); reqPMs=[]; reqStatuses=[]; reqGroups=[]; reqFase=""; reqEstado="";
+    reqData=reqProcess(items);
+    reqPMs = reqInitialPM ? [reqInitialPM] : []; reqInitialPM = null;
+    reqStatuses=[]; reqGroups=[]; reqFase=""; reqEstado="";
     container.innerHTML = `
       <div id="req-filters"></div>
       <div id="req-cards"></div>
@@ -1391,6 +1460,164 @@
     reqRenderFilters(); reqRenderCards(f); reqRenderPMHealth();
     document.getElementById("req-table").innerHTML = reqRenderTable(f);
     document.getElementById("req-count").textContent = `${f.length} items`;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PÁGINA: OVERVIEW (Portafolios PMO)
+  // ════════════════════════════════════════════════════════════════════════════
+
+  function overviewGoToIni(pm) { iniInitialPM = pm || null; navigate("iniciativas"); }
+  function overviewGoToReq(pm) { reqInitialPM = pm || null; navigate("req"); }
+
+  async function loadOverview(container) {
+    showLoader(container, "Cargando portafolios...");
+    document.getElementById("refresh-btn").disabled = true;
+    document.getElementById("refresh-btn").textContent = "Actualizando...";
+    document.getElementById("last-update").textContent = "Actualizando...";
+    try {
+      const [iniJson, reqJson, calData] = await Promise.all([
+        mondayFetch(`{ boards(ids:[${INI_BOARD_ID}]) { items_page(limit:500) { items { id name group { title } column_values { id text } } } } }`),
+        mondayFetch(`{ boards(ids:[${REQ_BOARD_ID}]) { items_page(limit:500) { items { id name group { title } column_values { id text } } } } }`),
+        fetchCalendar()
+      ]);
+      calMeetings = buildCalMap(calData);
+      const iniItems = iniProcess(iniJson.data.boards[0].items_page.items);
+      const reqItems = reqProcess(reqJson.data.boards[0].items_page.items);
+      overviewRender(container, iniItems, reqItems);
+      document.getElementById("last-update").textContent = `Actualizado: ${new Date().toLocaleString("es-GT",{dateStyle:"short",timeStyle:"medium"})}`;
+      startCountdown(() => loadOverview(container));
+    } catch(err) {
+      showError(container, err.message);
+      document.getElementById("last-update").textContent = "Error";
+    } finally {
+      document.getElementById("refresh-btn").disabled = false;
+      document.getElementById("refresh-btn").textContent = "↻ Actualizar";
+    }
+  }
+
+  function overviewRender(container, iniItems, reqItems) {
+    const iniProc = iniItems.filter(r => INI_ACTIVE_STS.has(r.status));
+    const reqProc = reqItems.filter(r => REQ_ACTIVE_GRUPOS.has(r.grupo));
+    const G = {
+      iniTotal:    iniProc.length,
+      iniAtrasado: iniProc.filter(r => r.estado === "ATRASADO").length,
+      iniParaHoy:  iniItems.filter(r => iniIsParaHoy(r)).length,
+      iniEnTiempo: iniProc.filter(r => r.estado === "EN TIEMPO" && !iniIsParaHoy(r)).length,
+      iniAprobada: iniItems.filter(r => r.estado === "APROBADA").length,
+      reqTotal:    reqProc.length,
+      reqAtrasado: reqProc.filter(r => r.estado === "ATRASADO").length,
+      reqParaHoy:  reqProc.filter(r => r.estado === "PARA HOY").length,
+      reqEnTiempo: reqProc.filter(r => r.estado === "EN TIEMPO").length,
+      reqEnEspera: reqItems.filter(r => r.estado === "EN_ESPERA").length,
+    };
+
+    const allPMs = [...new Set([
+      ...iniItems.filter(r => r.pm && r.estado !== "SKIP").map(r => r.pm),
+      ...reqItems.filter(r => r.pm && r.estado !== "CERRADO").map(r => r.pm),
+    ])].sort();
+
+    const healthCfg = {
+      "on-track":  { color:"#10b981", bg:"#052e1688", label:"On Track",  icon:"✓" },
+      "at-risk":   { color:"#f59e0b", bg:"#451a0388", label:"At Risk",   icon:"⚠" },
+      "off-track": { color:"#ef4444", bg:"#450a0a88", label:"Off Track", icon:"✕" },
+    };
+
+    const mkStat = (n, color, label) =>
+      n > 0 ? `<div class="pf-stat"><span class="pf-dot" style="background:${color}"></span>${n} ${label}</div>` : "";
+
+    const pmCards = allPMs.map(pm => {
+      const ini    = iniItems.filter(r => r.pm === pm && r.estado !== "SKIP");
+      const req    = reqItems.filter(r => r.pm === pm && r.estado !== "CERRADO");
+      const iniAct = ini.filter(r => INI_ACTIVE_STS.has(r.status));
+      const reqAct = req.filter(r => REQ_ACTIVE_GRUPOS.has(r.grupo));
+      const iAtr   = iniAct.filter(r => r.estado === "ATRASADO").length;
+      const rAtr   = reqAct.filter(r => r.estado === "ATRASADO").length;
+      const health = (iAtr + rAtr) === 0 ? "on-track" : (iAtr + rAtr) <= 2 ? "at-risk" : "off-track";
+      const hc     = healthCfg[health];
+      const pmQ    = pm.replace(/'/g, "\\'");
+
+      const iniParaHoyN  = ini.filter(r => iniIsParaHoy(r)).length;
+      const iniEnTiempoN = iniAct.filter(r => r.estado === "EN TIEMPO" && !iniIsParaHoy(r)).length;
+      const iniAprobadaN = ini.filter(r => r.estado === "APROBADA").length;
+      const iniHas = iniAct.length > 0 || iniAprobadaN > 0;
+
+      const reqParaHoyN  = reqAct.filter(r => r.estado === "PARA HOY").length;
+      const reqEnTiempoN = reqAct.filter(r => r.estado === "EN TIEMPO").length;
+      const reqEnEsperaN = req.filter(r => r.estado === "EN_ESPERA").length;
+      const reqHas = reqAct.length > 0 || reqEnEsperaN > 0;
+
+      const iniSection = `
+        <div class="pf-section${!iniHas?" pf-empty":""}" onclick="overviewGoToIni('${pmQ}')">
+          <div class="pf-section-head">
+            <span class="pf-section-label">Iniciativas</span>
+            ${iniHas ? '<span class="pf-go">Ver detalle →</span>' : ""}
+          </div>
+          ${iniHas ? `<div class="pf-stats">
+            ${mkStat(iniAct.length, "#6b7280", "en proceso")}
+            ${mkStat(iAtr, "#ef4444", `atrasada${iAtr!==1?"s":""}`)}
+            ${mkStat(iniParaHoyN, "#f59e0b", "para hoy")}
+            ${mkStat(iniEnTiempoN, "#10b981", "en tiempo")}
+            ${mkStat(iniAprobadaN, "#6c63ff", `aprobada${iniAprobadaN!==1?"s":""}`)}
+          </div>` : `<div style="color:var(--text-disabled);font-size:.8rem;padding-top:4px">Sin iniciativas activas</div>`}
+        </div>`;
+
+      const reqSection = `
+        <div class="pf-section${!reqHas?" pf-empty":""}" onclick="overviewGoToReq('${pmQ}')">
+          <div class="pf-section-head">
+            <span class="pf-section-label">REQ</span>
+            ${reqHas ? '<span class="pf-go">Ver detalle →</span>' : ""}
+          </div>
+          ${reqHas ? `<div class="pf-stats">
+            ${mkStat(reqAct.length, "#6b7280", "en proceso")}
+            ${mkStat(rAtr, "#ef4444", `atrasado${rAtr!==1?"s":""}`)}
+            ${mkStat(reqParaHoyN, "#f59e0b", "para hoy")}
+            ${mkStat(reqEnTiempoN, "#10b981", "en tiempo")}
+            ${mkStat(reqEnEsperaN, "#9ca3af", "en espera")}
+          </div>` : `<div style="color:var(--text-disabled);font-size:.8rem;padding-top:4px">Sin REQs activos</div>`}
+        </div>`;
+
+      return `
+        <div class="pf-card" style="border-color:${hc.color}">
+          <div class="pf-header">
+            <span class="pf-name">${pm}</span>
+            <span class="pf-badge" style="color:${hc.color};background:${hc.bg}">${hc.icon} ${hc.label}</span>
+          </div>
+          <div class="pf-boards">
+            ${iniSection}
+            <div class="pf-divider"></div>
+            ${reqSection}
+          </div>
+        </div>`;
+    }).join("");
+
+    container.innerHTML = `
+      <div class="pf-global">
+        <div class="pf-global-block" onclick="overviewGoToIni(null)">
+          <div class="pf-global-title">Iniciativas <span style="font-size:.72rem;opacity:.5">→ ver dashboard</span></div>
+          <div class="pf-global-stats">
+            <span class="pf-gstat" style="color:var(--text-primary)">${G.iniTotal} en proceso</span>
+            <span class="pf-gstat" style="color:#ef4444">${G.iniAtrasado} atrasadas</span>
+            <span class="pf-gstat" style="color:#f59e0b">${G.iniParaHoy} para hoy</span>
+            <span class="pf-gstat" style="color:#10b981">${G.iniEnTiempo} en tiempo</span>
+            <span class="pf-gstat" style="color:#6c63ff">${G.iniAprobada} aprobadas</span>
+          </div>
+        </div>
+        <div class="pf-global-sep"></div>
+        <div class="pf-global-block" onclick="overviewGoToReq(null)">
+          <div class="pf-global-title">REQ <span style="font-size:.72rem;opacity:.5">→ ver dashboard</span></div>
+          <div class="pf-global-stats">
+            <span class="pf-gstat" style="color:var(--text-primary)">${G.reqTotal} en proceso</span>
+            <span class="pf-gstat" style="color:#ef4444">${G.reqAtrasado} atrasados</span>
+            <span class="pf-gstat" style="color:#f59e0b">${G.reqParaHoy} para hoy</span>
+            <span class="pf-gstat" style="color:#10b981">${G.reqEnTiempo} en tiempo</span>
+            <span class="pf-gstat" style="color:#9ca3af">${G.reqEnEspera} en espera</span>
+          </div>
+        </div>
+      </div>
+      <div class="section-header" style="margin-top:24px;margin-bottom:16px">
+        <h2>Portafolios por PM</h2><span class="badge">${allPMs.length} PM${allPMs.length!==1?"s":""}</span>
+      </div>
+      <div class="pf-grid">${pmCards || '<div style="padding:40px;text-align:center;color:var(--text-muted)">Sin datos disponibles.</div>'}</div>`;
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -1414,7 +1641,7 @@
   // INIT
   // ════════════════════════════════════════════════════════════════════════════
   buildNav();
-  navigate("iniciativas");
+  navigate("overview");
 </script>
 </body>
 </html>
