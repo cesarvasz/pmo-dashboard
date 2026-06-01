@@ -366,6 +366,34 @@
     .chart-title { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
     .chart-wrap  { position: relative; height: 240px; }
 
+    /* ── HEALTH SCORE ────────────────────────────────────────────────────── */
+    .health-card {
+      background: var(--bg-surface); border: 2px solid var(--border);
+      border-radius: 12px; padding: 24px 28px; margin-bottom: 16px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .health-title {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--text-muted); margin-bottom: 16px;
+    }
+    .health-row {
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .health-pct { font-size: 3rem; font-weight: 800; line-height: 1; min-width: 88px; }
+    .health-bar-outer {
+      flex: 1; min-width: 120px;
+      height: 10px; background: var(--border); border-radius: 5px; overflow: hidden;
+    }
+    .health-bar-fill { height: 100%; border-radius: 5px; transition: width 0.8s ease; }
+    .health-badge-lg {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 14px; border-radius: 999px; font-size: .82rem; font-weight: 700;
+      white-space: nowrap;
+    }
+    .health-breakdown {
+      display: flex; gap: 20px; flex-wrap: wrap; font-size: .82rem; font-weight: 600;
+    }
+
     /* ── PORTFOLIO OVERVIEW ─────────────────────────────────────────────── */
     .pf-global {
       background: var(--bg-surface); border: 1px solid var(--border);
@@ -1511,6 +1539,21 @@
       reqEnEspera: reqItems.filter(r => r.estado === "EN_ESPERA").length,
     };
 
+    // ── Índice de salud ──────────────────────────────────────────────────────
+    const hEnTiempo = iniProc.filter(r => r.estado === "EN TIEMPO").length
+                    + reqProc.filter(r => r.estado === "EN TIEMPO").length;
+    const hParaHoy  = iniProc.filter(r => r.estado === "PARA HOY").length
+                    + reqProc.filter(r => r.estado === "PARA HOY").length;
+    const hAtrasado = iniProc.filter(r => r.estado === "ATRASADO").length
+                    + reqProc.filter(r => r.estado === "ATRASADO").length;
+    const hTotal    = hEnTiempo + hParaHoy + hAtrasado;
+    const healthPct = hTotal === 0 ? 100
+      : Math.round(((hEnTiempo + hParaHoy * 0.5) / hTotal) * 100);
+    const hColor  = healthPct >= 80 ? "#10b981" : healthPct >= 50 ? "#f59e0b" : "#ef4444";
+    const hBg     = healthPct >= 80 ? "#052e1688" : healthPct >= 50 ? "#451a0388" : "#450a0a88";
+    const hLabel  = healthPct >= 80 ? "Saludable" : healthPct >= 50 ? "En Riesgo" : "Crítico";
+    const hIcon   = healthPct >= 80 ? "✓" : healthPct >= 50 ? "⚠" : "✕";
+
     const allPMs = [...new Set([
       ...iniItems.filter(r => r.pm && r.estado !== "SKIP").map(r => r.pm),
       ...reqItems.filter(r => r.pm && r.estado !== "CERRADO").map(r => r.pm),
@@ -1591,6 +1634,22 @@
     }).join("");
 
     container.innerHTML = `
+      <div class="health-card" style="border-color:${hColor}">
+        <div class="health-title">Índice de Salud del Portafolio PMO</div>
+        <div class="health-row">
+          <div class="health-pct" style="color:${hColor}">${healthPct}%</div>
+          <div class="health-bar-outer">
+            <div class="health-bar-fill" style="width:${healthPct}%;background:${hColor}"></div>
+          </div>
+          <span class="health-badge-lg" style="color:${hColor};background:${hBg}">${hIcon} ${hLabel}</span>
+        </div>
+        <div class="health-breakdown">
+          <span style="color:#10b981">✓ ${hEnTiempo} en tiempo</span>
+          <span style="color:#f59e0b">⚠ ${hParaHoy} para hoy</span>
+          <span style="color:#ef4444">✕ ${hAtrasado} atrasados</span>
+          <span style="color:var(--text-muted)">${hTotal} activos totales (ini + req)</span>
+        </div>
+      </div>
       <div class="pf-global">
         <div class="pf-global-block" onclick="overviewGoToIni(null)">
           <div class="pf-global-title">Iniciativas <span style="font-size:.72rem;opacity:.5">→ ver dashboard</span></div>
