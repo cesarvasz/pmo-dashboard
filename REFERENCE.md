@@ -32,6 +32,7 @@ COUNTDOWN
 UTILIDADES COMPARTIDAS
 PÁGINA: INICIATIVAS
 PÁGINA: REQ
+PÁGINA: CONTROL TOWER (OVERVIEW)
 PLACEHOLDER
 INIT
 ```
@@ -82,9 +83,18 @@ Las variables CSS (`--bg-base`, `--accent`, `--pill-atrasado-bg`, etc.) están d
 ### Array `PAGES`
 Registro central de todas las páginas. Cada objeto tiene:
 ```js
-{ id: "iniciativas", label: "Iniciativas", icon: "◈", subtitle: "...", load: loadIniciativas }
+{ id: "overview", label: "Control Tower", icon: "◎", subtitle: "...", load: loadOverview }
 ```
 Si `load` es `null`, la página muestra un placeholder y aparece deshabilitada en el sidebar.
+
+### Variables de filtro inicial (navegación desde Control Tower)
+
+| Variable | Descripción |
+|---|---|
+| `iniInitialPM` | Si tiene valor, `iniRender` lo aplica como filtro de PM al cargar y lo resetea a `null` |
+| `reqInitialPM` | Ídem para REQ |
+
+Permiten navegar desde Control Tower a una página ya filtrada por un PM específico sin necesidad de que la página esté cargada de antemano.
 
 ### Funciones de navegación
 
@@ -201,7 +211,7 @@ status ∈ INI_LIMITS:
 | `iniSelectPM(pm)` | Toggle: si ese PM ya está solo seleccionado, lo deselecciona; si no, lo selecciona exclusivamente |
 | `iniRenderSections(filtered)` | Dibuja cada sección (tabla por status) con sus headers, filas y badges |
 | `iniRefresh()` | Re-renderiza filtros, cards, PM health y secciones con los filtros actuales |
-| `iniRender(container, items)` | Renderizado inicial: procesa datos, crea estructura DOM, llama a `iniRefresh` |
+| `iniRender(container, items)` | Renderizado inicial: procesa datos, aplica `iniInitialPM` si está definido, crea estructura DOM y llama a `iniRefresh` |
 
 ### Funciones de toggle de filtros
 
@@ -297,7 +307,7 @@ deadline > hoy       → "EN TIEMPO"
 | `reqSelectPM(pm)` | Toggle de selección exclusiva de PM |
 | `reqRenderTable(filtered)` | Genera el HTML completo de la tabla de REQs |
 | `reqRefresh()` | Re-renderiza todos los componentes REQ |
-| `reqRender(container, items)` | Renderizado inicial |
+| `reqRender(container, items)` | Renderizado inicial: procesa datos, aplica `reqInitialPM` si está definido, crea estructura DOM y llama a `reqRefresh` |
 
 ### Helpers de celda en la tabla REQ
 
@@ -306,6 +316,80 @@ deadline > hoy       → "EN TIEMPO"
 | `diffCell(r)` | Días hábiles de diferencia vs hoy. Verde `+N días`, amarillo `Hoy`, rojo `-N días` |
 | `deadlineCell(r)` | Fecha del deadline coloreada (rojo=atrasado, amarillo=hoy, verde=en tiempo) |
 | `estadoPill(r)` | Badge de estado con clase CSS y texto correspondiente |
+
+---
+
+## Página: Control Tower
+
+Primera página del dashboard. Agrega ambos boards (Iniciativas + REQ) en una sola vista y agrupa los datos por PM en tarjetas de portafolio. No tiene estado de filtros propio — solo consume los datos procesados al vuelo.
+
+### Fuentes de datos
+
+Hace tres fetches en paralelo al cargar:
+1. Board de Iniciativas (`INI_BOARD_ID`)
+2. Board de REQ (`REQ_BOARD_ID`)
+3. Calendario de meetings (Google Apps Script)
+
+Reutiliza `iniProcess`, `reqProcess` y `buildCalMap` de las otras páginas para no duplicar lógica.
+
+### Lógica de salud por PM
+
+Combina atrasados de Iniciativas + REQ para calcular el estado del portafolio:
+
+| Condición | Estado |
+|---|---|
+| 0 atrasados en total | On Track (verde) |
+| 1–2 atrasados en total | At Risk (amarillo) |
+| 3+ atrasados en total | Off Track (rojo) |
+
+### Funciones
+
+| Función | Descripción |
+|---|---|
+| `overviewGoToIni(pm)` | Establece `iniInitialPM = pm` y llama `navigate("iniciativas")`. Si `pm` es `null`, navega sin filtro |
+| `overviewGoToReq(pm)` | Establece `reqInitialPM = pm` y llama `navigate("req")`. Si `pm` es `null`, navega sin filtro |
+| `loadOverview(container)` | Fetches en paralelo a ambos boards y al calendario; llama a `overviewRender` |
+| `overviewRender(container, iniItems, reqItems)` | Construye el HTML completo: barra de resumen global + grid de tarjetas por PM |
+
+### Estructura visual
+
+```
+┌─ Barra de resumen global ──────────────────────────────────────────┐
+│  [Iniciativas → ver dashboard]   │   [REQ → ver dashboard]        │
+│  N en proceso · N atrasadas · …  │   N en proceso · N atrasados … │
+└────────────────────────────────────────────────────────────────────┘
+
+┌─ PM Card ──────────────────────────────────────────────────────────┐
+│  Nombre PM                              [● On Track / ⚠ At Risk]  │
+├───────────────────────────┬────────────────────────────────────────┤
+│  INICIATIVAS  Ver detalle→│  REQ               Ver detalle →      │
+│  · N en proceso           │  · N en proceso                       │
+│  · N atrasadas            │  · N atrasados                        │
+│  · N para hoy             │  · N para hoy                         │
+└───────────────────────────┴────────────────────────────────────────┘
+```
+
+Clic en la mitad de Iniciativas → `overviewGoToIni(pm)` → navega a Iniciativas filtrado por ese PM.
+Clic en la mitad de REQ → `overviewGoToReq(pm)` → navega a REQ filtrado por ese PM.
+Clic en la barra global → navega al dashboard correspondiente sin filtro de PM.
+
+### Clases CSS específicas
+
+| Clase | Descripción |
+|---|---|
+| `.pf-global` | Contenedor de la barra de resumen superior |
+| `.pf-global-block` | Cada mitad de la barra (Iniciativas / REQ), clickeable |
+| `.pf-global-sep` | Separador vertical entre bloques |
+| `.pf-gstat` | Stat individual en la barra (número + label) |
+| `.pf-grid` | Grid auto-fill de tarjetas de PM |
+| `.pf-card` | Tarjeta de un PM, borde coloreado según salud |
+| `.pf-header` | Fila superior de la card (nombre + badge de salud) |
+| `.pf-boards` | Contenedor flex de las dos mitades |
+| `.pf-section` | Mitad clickeable (Iniciativas o REQ) |
+| `.pf-section.pf-empty` | Mitad sin items activos — no interactiva |
+| `.pf-go` | Texto "Ver detalle →", visible solo en hover |
+| `.pf-stats` | Lista de stats dentro de una sección |
+| `.pf-stat` / `.pf-dot` | Fila de stat individual con punto de color |
 
 ---
 
