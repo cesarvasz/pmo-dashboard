@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PMO Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── THEME VARIABLES ─────────────────────────────────────────────────── */
+    :root, [data-theme="dark"] {
+      --bg-base:        #0f1117;
+      --bg-surface:     #1a1d27;
+      --bg-sidebar:     #13151f;
+      --bg-hover:       #1e2130;
+      --bg-accent-soft: #1e1b4b;
+      --border:         #2d3148;
+      --border-subtle:  #334155;
+      --text-primary:   #e2e8f0;
+      --text-secondary: #9ca3af;
+      --text-muted:     #6b7280;
+      --text-disabled:  #4b5563;
+      --accent:         #6c63ff;
+      --accent-hover:   #5a52e0;
+      --accent-dim:     #3d3d5c;
+      --accent-light:   #a5b4fc;
+      --code-bg:        #1e293b;
+      --code-border:    #334155;
+      --table-head-bg:  #1a1d27;
+      --card-value-total: #e2e8f0;
+
+      --pill-atrasado-bg: #450a0a; --pill-atrasado-fg: #fca5a5; --pill-atrasado-br: #7f1d1d;
+      --pill-parahoy-bg:  #451a03; --pill-parahoy-fg:  #fcd34d; --pill-parahoy-br:  #78350f;
+      --pill-entiempo-bg: #052e16; --pill-entiempo-fg: #6ee7b7; --pill-entiempo-br: #14532d;
+      --pill-aprobada-bg: #1e1b4b; --pill-aprobada-fg: #a5b4fc; --pill-aprobada-br: #3730a3;
+      --pill-skip-bg:     #1f2937; --pill-skip-fg:     #6b7280; --pill-skip-br:     #374151;
+
+      --chart-grid:  #1e2130;
+      --shadow:      rgba(0,0,0,0.4);
+    }
+
+    [data-theme="light"] {
+      --bg-base:        #f0f2fa;
+      --bg-surface:     #ffffff;
+      --bg-sidebar:     #f8f9fd;
+      --bg-hover:       #eef0f8;
+      --bg-accent-soft: #ede9fe;
+      --border:         #dde1ef;
+      --border-subtle:  #c7d0e8;
+      --text-primary:   #1e2130;
+      --text-secondary: #4b5563;
+      --text-muted:     #6b7280;
+      --text-disabled:  #9ca3af;
+      --accent:         #6c63ff;
+      --accent-hover:   #5a52e0;
+      --accent-dim:     #c7c3f8;
+      --accent-light:   #6c63ff;
+      --code-bg:        #f1f5f9;
+      --code-border:    #dde1ef;
+      --table-head-bg:  #f8f9fd;
+      --card-value-total: #1e2130;
+
+      --pill-atrasado-bg: #fee2e2; --pill-atrasado-fg: #991b1b; --pill-atrasado-br: #fca5a5;
+      --pill-parahoy-bg:  #fef3c7; --pill-parahoy-fg:  #92400e; --pill-parahoy-br:  #fcd34d;
+      --pill-entiempo-bg: #d1fae5; --pill-entiempo-fg: #065f46; --pill-entiempo-br: #6ee7b7;
+      --pill-aprobada-bg: #ede9fe; --pill-aprobada-fg: #4c1d95; --pill-aprobada-br: #a5b4fc;
+      --pill-skip-bg:     #f3f4f6; --pill-skip-fg:     #6b7280; --pill-skip-br:     #d1d5db;
+
+      --chart-grid:  #e5e7eb;
+      --shadow:      rgba(0,0,0,0.08);
+    }
+
+    /* ── RESET & BASE ───────────────────────────────────────────────────── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────────────────────── */
+    .sidebar {
+      width: 220px; min-width: 220px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      height: 100vh; position: sticky; top: 0;
+      transition: width 0.2s, min-width 0.2s, background 0.2s, border-color 0.2s;
+      overflow: hidden; z-index: 100;
+    }
+    .sidebar.collapsed { width: 60px; min-width: 60px; }
+
+    .sidebar-brand {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 16px; border-bottom: 1px solid var(--border); min-height: 62px;
+    }
+    .brand-inner { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+    .brand-icon {
+      width: 28px; height: 28px; background: var(--accent); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .brand-text {
+      font-size: 0.95rem; font-weight: 700; color: var(--text-primary);
+      letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; transition: opacity 0.15s;
+    }
+    .sidebar.collapsed .brand-text { opacity: 0; pointer-events: none; }
+
+    .collapse-btn {
+      background: none; border: 1px solid var(--border); color: var(--text-muted);
+      width: 24px; height: 24px; border-radius: 6px; cursor: pointer;
+      font-size: 0.75rem; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.15s;
+    }
+    .collapse-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+    .sidebar.collapsed .collapse-btn { transform: rotate(180deg); }
+
+    .nav-section-label {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-disabled); padding: 16px 16px 6px;
+      white-space: nowrap; overflow: hidden; transition: opacity 0.15s;
+    }
+    .sidebar.collapsed .nav-section-label { opacity: 0; }
+
+    .nav-list { list-style: none; flex: 1; overflow-y: auto; padding: 8px; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: 8px; cursor: pointer;
+      color: var(--text-secondary); font-size: 0.875rem;
+      text-decoration: none; transition: background 0.15s, color 0.15s;
+      white-space: nowrap; overflow: hidden; position: relative; margin-bottom: 2px;
+    }
+    .nav-item:hover  { background: var(--bg-hover); color: var(--text-primary); }
+    .nav-item.active { background: var(--bg-accent-soft); color: var(--accent-light); }
+    .nav-item.active .nav-icon { color: var(--accent); }
+    .nav-item.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+    .nav-icon  { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-label { overflow: hidden; transition: opacity 0.15s; }
+    .sidebar.collapsed .nav-label { opacity: 0; }
+
+    .nav-soon {
+      font-size: 0.6rem; background: var(--code-bg); color: var(--text-disabled);
+      border: 1px solid var(--code-border); border-radius: 4px;
+      padding: 1px 5px; margin-left: auto; flex-shrink: 0; transition: opacity 0.15s;
+    }
+    .sidebar.collapsed .nav-soon { opacity: 0; }
+
+    .sidebar-footer {
+      padding: 12px 16px; border-top: 1px solid var(--border);
+      font-size: 0.7rem; color: var(--text-disabled);
+      white-space: nowrap; overflow: hidden; transition: opacity 0.15s;
+    }
+    .sidebar.collapsed .sidebar-footer { opacity: 0; }
+
+    /* ── CONTENT ─────────────────────────────────────────────────────────── */
+    .content-wrap {
+      flex: 1; display: flex; flex-direction: column;
+      min-width: 0; height: 100vh; overflow-y: auto;
+    }
+
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .page-title    { font-size: 1.15rem; font-weight: 600; color: var(--text-primary); }
+    .page-subtitle { font-size: 0.78rem; color: var(--text-muted); }
+
+    .meta { display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: var(--text-muted); }
+
+    /* ── THEME TOGGLE ────────────────────────────────────────────────────── */
+    .theme-toggle {
+      width: 32px; height: 32px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border);
+      border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; transition: all 0.2s; flex-shrink: 0;
+      color: var(--text-secondary);
+    }
+    .theme-toggle:hover { border-color: var(--accent); color: var(--accent); background: var(--bg-accent-soft); }
+
+    .refresh-btn {
+      background: var(--accent); color: #fff; border: none;
+      padding: 6px 14px; border-radius: 6px; cursor: pointer;
+      font-size: 0.8rem; transition: background 0.2s;
+    }
+    .refresh-btn:hover    { background: var(--accent-hover); }
+    .refresh-btn:disabled { background: var(--accent-dim); cursor: not-allowed; }
+
+    .countdown { color: var(--text-secondary); font-size: 0.78rem; }
+    #last-update { color: var(--text-muted); font-size: 0.78rem; }
+
+    main { padding: 28px 32px; }
+
+    /* ── PLACEHOLDER ─────────────────────────────────────────────────────── */
+    .placeholder-page {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 60vh; gap: 16px; text-align: center;
+    }
+    .placeholder-icon  { font-size: 3rem; opacity: 0.25; }
+    .placeholder-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
+    .placeholder-desc  { font-size: 0.85rem; color: var(--text-muted); max-width: 400px; line-height: 1.6; }
+    .placeholder-hint  {
+      font-size: 0.78rem; color: var(--text-disabled);
+      background: var(--code-bg); border: 1px dashed var(--border);
+      border-radius: 8px; padding: 12px 20px; max-width: 480px; line-height: 1.7;
+    }
+    .placeholder-hint code { color: var(--accent-light); font-family: monospace; }
+
+    /* ── CARDS ───────────────────────────────────────────────────────────── */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .card {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px; text-align: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .card .value { font-size: 2.2rem; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+    .card .label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+    .card.atrasado  { border-color: #ef4444; } .card.atrasado  .value { color: #ef4444; }
+    .card.parahoy   { border-color: #f59e0b; } .card.parahoy   .value { color: #f59e0b; }
+    .card.entiempo  { border-color: #10b981; } .card.entiempo  .value { color: #10b981; }
+    .card.aprobada  { border-color: var(--accent); } .card.aprobada  .value { color: var(--accent); }
+    .card.total     .value { color: var(--card-value-total); }
+
+    /* ── SECTIONS ────────────────────────────────────────────────────────── */
+    .section { margin-bottom: 32px; }
+    .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .section-header h2 { font-size: 1rem; font-weight: 600; color: var(--text-primary); }
+    .section-header .badge {
+      font-size: 0.72rem; padding: 2px 8px; border-radius: 999px;
+      background: var(--bg-hover); color: var(--text-secondary);
+    }
+    .section-header .limit-badge {
+      font-size: 0.72rem; padding: 2px 8px; border-radius: 999px;
+      background: var(--code-bg); color: var(--text-muted); border: 1px solid var(--code-border);
+    }
+
+    /* ── TABLE ───────────────────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+    thead th {
+      background: var(--table-head-bg); padding: 10px 14px; text-align: left;
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid var(--bg-hover); transition: background 0.15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg-hover); }
+    tbody td { padding: 11px 14px; vertical-align: middle; background: var(--bg-surface); transition: background 0.15s; }
+    tbody tr:hover td { background: var(--bg-hover); }
+    .ini-id   { font-family: monospace; font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; }
+    .ini-name { font-weight: 500; color: var(--text-primary); }
+    .pm-name  { color: var(--accent-light); white-space: nowrap; }
+    .grupo    { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
+
+    /* ── PILLS ───────────────────────────────────────────────────────────── */
+    .pill {
+      display: inline-block; padding: 3px 10px; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.03em; white-space: nowrap;
+    }
+    .pill-atrasado { background: var(--pill-atrasado-bg); color: var(--pill-atrasado-fg); border: 1px solid var(--pill-atrasado-br); }
+    .pill-parahoy  { background: var(--pill-parahoy-bg);  color: var(--pill-parahoy-fg);  border: 1px solid var(--pill-parahoy-br); }
+    .pill-entiempo { background: var(--pill-entiempo-bg); color: var(--pill-entiempo-fg); border: 1px solid var(--pill-entiempo-br); }
+    .pill-aprobada { background: var(--pill-aprobada-bg); color: var(--pill-aprobada-fg); border: 1px solid var(--pill-aprobada-br); }
+    .pill-skip     { background: var(--pill-skip-bg);     color: var(--pill-skip-fg);     border: 1px solid var(--pill-skip-br); }
+
+    /* ── PROGRESS BAR ────────────────────────────────────────────────────── */
+    .progress-wrap { display: flex; align-items: center; gap: 8px; }
+    .progress-bar  { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; min-width: 60px; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+    /* ── LOADER / ERROR ──────────────────────────────────────────────────── */
+    .loader {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 80px; gap: 16px; color: var(--text-muted);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-box {
+      background: var(--pill-atrasado-bg); border: 1px solid var(--pill-atrasado-br);
+      color: var(--pill-atrasado-fg); border-radius: 10px; padding: 20px 24px; margin: 20px 0;
+    }
+
+    /* ── FILTER ROW ──────────────────────────────────────────────────────── */
+    .filter-row { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
+
+    .filter-reset {
+      background: none; color: var(--text-muted); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 14px; font-size: 0.8rem; font-family: inherit;
+      cursor: pointer; transition: all 0.15s; align-self: flex-end; white-space: nowrap;
+    }
+    .filter-reset:hover { border-color: #ef4444; color: #ef4444; }
+
+    /* ── MULTI-SELECT DROPDOWN ───────────────────────────────────────────── */
+    .ms-wrap { position: relative; display: flex; flex-direction: column; gap: 5px; }
+
+    .ms-label {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); font-weight: 500;
+    }
+
+    .ms-trigger {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      min-width: 190px; padding: 8px 12px;
+      background: var(--bg-surface); color: var(--text-primary);
+      border: 1px solid var(--border); border-radius: 8px;
+      cursor: pointer; font-size: 0.85rem; font-family: inherit;
+      transition: border-color 0.15s;
+      white-space: nowrap;
+    }
+    .ms-trigger:hover      { border-color: var(--accent); }
+    .ms-trigger.active     { border-color: var(--accent); background: var(--bg-accent-soft); color: var(--accent-light); }
+    .ms-chevron            { flex-shrink: 0; opacity: 0.5; transition: transform 0.2s; }
+    .ms-trigger.open .ms-chevron { transform: rotate(180deg); }
+
+    .ms-panel {
+      display: none; position: absolute; top: calc(100% + 6px); left: 0;
+      min-width: 100%; background: var(--bg-surface);
+      border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: 0 8px 24px var(--shadow); z-index: 300;
+      overflow: hidden; min-width: 200px;
+    }
+    .ms-panel.open { display: block; }
+
+    .ms-option {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px; cursor: pointer; font-size: 0.85rem;
+      color: var(--text-primary); transition: background 0.1s; user-select: none;
+    }
+    .ms-option:hover { background: var(--bg-hover); }
+    .ms-option input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; flex-shrink: 0; cursor: pointer; }
+    .ms-all-opt { font-weight: 600; }
+    .ms-sep { height: 1px; background: var(--border); margin: 2px 0; }
+    .ms-count { margin-left: auto; font-size: 0.75rem; color: var(--text-muted); }
+
+    /* ── CLICKABLE CARDS ─────────────────────────────────────────────────── */
+    .card.clickable { cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s; }
+    .card.clickable:hover { transform: translateY(-2px); }
+    .card.card-active.atrasado  { background: #450a0a55; box-shadow: 0 0 0 2px #ef4444; }
+    .card.card-active.parahoy   { background: #451a0355; box-shadow: 0 0 0 2px #f59e0b; }
+    .card.card-active.entiempo  { background: #052e1655; box-shadow: 0 0 0 2px #10b981; }
+    .card.card-active           { box-shadow: 0 0 0 2px var(--accent); }
+
+    /* ── CHART (REQ page only) ───────────────────────────────────────────── */
+    .chart-container {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 24px; margin-bottom: 28px;
+      transition: background 0.2s;
+    }
+    .chart-title { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
+    .chart-wrap  { position: relative; height: 240px; }
+
+    /* ── HEALTH SCORE ────────────────────────────────────────────────────── */
+    .health-card {
+      background: var(--bg-surface); border: 2px solid var(--border);
+      border-radius: 12px; padding: 24px 28px; margin-bottom: 16px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .health-title {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--text-muted); margin-bottom: 16px;
+    }
+    .health-row {
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .health-pct { font-size: 3rem; font-weight: 800; line-height: 1; min-width: 88px; }
+    .health-bar-outer {
+      flex: 1; min-width: 120px;
+      height: 10px; background: var(--border); border-radius: 5px; overflow: hidden;
+    }
+    .health-bar-fill { height: 100%; border-radius: 5px; transition: width 0.8s ease; }
+    .health-badge-lg {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 14px; border-radius: 999px; font-size: .82rem; font-weight: 700;
+      white-space: nowrap;
+    }
+    .health-breakdown {
+      display: flex; gap: 20px; flex-wrap: wrap; font-size: .82rem; font-weight: 600;
+    }
+
+    /* ── PORTFOLIO OVERVIEW ─────────────────────────────────────────────── */
+    .pf-global {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 24px;
+      display: flex; gap: 0; margin-bottom: 8px; flex-wrap: wrap;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .pf-global-block {
+      flex: 1; min-width: 200px; padding: 6px 20px;
+      border-radius: 8px; cursor: pointer; transition: background 0.15s;
+    }
+    .pf-global-block:first-child { padding-left: 4px; }
+    .pf-global-block:hover { background: var(--bg-hover); }
+    .pf-global-title {
+      font-size: .75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--text-muted); margin-bottom: 10px;
+    }
+    .pf-global-sep { width: 1px; background: var(--border); margin: 0 4px; align-self: stretch; }
+    .pf-global-stats { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+    .pf-gstat { font-size: .88rem; font-weight: 600; white-space: nowrap; }
+
+    .pf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 16px;
+    }
+    .pf-card {
+      background: var(--bg-surface); border: 2px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      transition: background 0.2s, box-shadow 0.15s;
+    }
+    .pf-card:hover { box-shadow: 0 4px 20px var(--shadow); }
+    .pf-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+    }
+    .pf-name  { font-weight: 700; font-size: .95rem; color: var(--text-primary); }
+    .pf-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700;
+    }
+    .pf-boards  { display: flex; }
+    .pf-divider { width: 1px; background: var(--border); flex-shrink: 0; }
+    .pf-section {
+      flex: 1; padding: 14px 18px; cursor: pointer; transition: background 0.15s; min-width: 0;
+    }
+    .pf-section:hover { background: var(--bg-hover); }
+    .pf-section.pf-empty { cursor: default; }
+    .pf-section.pf-empty:hover { background: transparent; }
+    .pf-section-head {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+    }
+    .pf-section-label {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--text-muted);
+    }
+    .pf-go { font-size: .7rem; color: var(--accent-light); opacity: 0; transition: opacity 0.15s; }
+    .pf-section:hover .pf-go { opacity: 1; }
+    .pf-stats { display: flex; flex-direction: column; gap: 5px; }
+    .pf-stat  { display: flex; align-items: center; gap: 7px; font-size: .82rem; color: var(--text-secondary); }
+    .pf-dot   { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── PM HEALTH CARDS ─────────────────────────────────────────────────── */
+    .pm-health-row {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px;
+    }
+    .pm-health-card {
+      background: var(--bg-surface); border: 2px solid var(--border);
+      border-radius: 12px; padding: 18px 22px; min-width: 190px; flex: 1;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .pm-health-card:hover { transform: translateY(-2px); }
+    .pm-health-card.ph-active { box-shadow: 0 0 0 3px var(--accent); }
+    .pm-health-name   { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); }
+    .pm-health-badge  {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 700; width: fit-content;
+    }
+    .pm-health-score  { font-size: 1.4rem; font-weight: 700; line-height: 1; }
+    .pm-health-meta   { font-size: 0.75rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ─────────────────────────────────────────────────────────────── -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-inner">
+      <div class="brand-icon">P</div>
+      <span class="brand-text">PMO Suite</span>
+    </div>
+    <button class="collapse-btn" onclick="toggleSidebar()" title="Colapsar">‹</button>
+  </div>
+  <div class="nav-section-label">Dashboards</div>
+  <ul class="nav-list" id="nav-list"></ul>
+  <div class="sidebar-footer">PMO Dashboard v1.0</div>
+</nav>
+
+<!-- ── CONTENT ─────────────────────────────────────────────────────────────── -->
+<div class="content-wrap">
+  <header>
+    <div class="header-left">
+      <div>
+        <div class="page-title" id="page-title">Cargando...</div>
+        <div class="page-subtitle" id="page-subtitle"></div>
+      </div>
+    </div>
+    <div class="meta">
+      <span id="last-update"></span>
+      <span class="countdown" id="countdown"></span>
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
+      <button class="refresh-btn" id="refresh-btn" onclick="refreshPage()">↻ Actualizar</button>
+    </div>
+  </header>
+  <main id="main">
+    <div class="loader"><div class="spinner"></div><span>Cargando...</span></div>
+  </main>
+</div>
+
+<script>
+  // ════════════════════════════════════════════════════════════════════════════
+  // TEMA
+  // ════════════════════════════════════════════════════════════════════════════
+  const THEME_KEY = "pmo-theme";
+  let iniChart = null; // declarado aquí para que initTheme() no lo encuentre en TDZ
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.getElementById("theme-toggle").textContent = theme === "dark" ? "🌙" : "☀️";
+    localStorage.setItem(THEME_KEY, theme);
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute("data-theme");
+    applyTheme(current === "dark" ? "light" : "dark");
+  }
+
+  // ── Leer preferencia guardada o preferencia del sistema ──────────────────
+  (function initTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    const sys   = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    applyTheme(saved || sys);
+  })();
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // CONFIGURACIÓN GLOBAL
+  // ════════════════════════════════════════════════════════════════════════════
+  const API_KEY      = "";
+  const REFRESH_SECS = 5 * 60;
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // MULTI-SELECT UTILITIES
+  // ════════════════════════════════════════════════════════════════════════════
+  function msToggle(id) {
+    const panel = document.getElementById(id);
+    const trigger = panel?.previousElementSibling;
+    if (!panel) return;
+    const opening = !panel.classList.contains('open');
+    document.querySelectorAll('.ms-panel.open').forEach(p => {
+      p.classList.remove('open');
+      p.previousElementSibling?.classList.remove('open');
+    });
+    if (opening) {
+      panel.classList.add('open');
+      trigger?.classList.add('open');
+    }
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.ms-wrap')) {
+      document.querySelectorAll('.ms-panel.open').forEach(p => {
+        p.classList.remove('open');
+        p.previousElementSibling?.classList.remove('open');
+      });
+    }
+  });
+
+  function renderMS(id, labelText, options, selected, toggleFn, allFn) {
+    const isAll = selected.length === 0;
+    const triggerLabel = isAll ? 'Todos'
+      : selected.length === 1 ? (options.find(o => o.value === selected[0])?.label ?? selected[0])
+      : `${selected.length} seleccionados`;
+    const allCount = options.reduce((s, o) => s + o.count, 0);
+
+    const opts = options.map(({ value, label, count }) => `
+      <label class="ms-option">
+        <input type="checkbox" ${selected.includes(value) ? 'checked' : ''}
+          onchange="${toggleFn}(this.dataset.v, this.checked)" data-v="${value}">
+        <span>${label}</span>
+        <span class="ms-count">(${count})</span>
+      </label>`).join('');
+
+    return `
+      <div class="ms-wrap">
+        <label class="ms-label">${labelText}</label>
+        <button class="ms-trigger ${!isAll ? 'active' : ''}" onclick="msToggle('${id}'); event.stopPropagation()">
+          <span>${triggerLabel}</span>
+          <svg class="ms-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none">
+            <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="ms-panel" id="${id}">
+          <label class="ms-option ms-all-opt">
+            <input type="checkbox" ${isAll ? 'checked' : ''} onchange="${allFn}(this.checked)">
+            <span>Todos</span>
+            <span class="ms-count">(${allCount})</span>
+          </label>
+          <div class="ms-sep"></div>
+          ${opts}
+        </div>
+      </div>`;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // REGISTRO DE PÁGINAS
+  // Para agregar una nueva página:
+  //   1. Agrega un objeto a PAGES con { id, label, icon, subtitle, load }
+  //   2. Implementa la función load(container) que renderiza el contenido
+  // ════════════════════════════════════════════════════════════════════════════
+  const PAGES = [
+    { id: "overview",    label: "Control Tower", icon: "◎", subtitle: "Resumen de portafolios PMO", load: loadOverview },
+    { id: "iniciativas", label: "Iniciativas", icon: "◈", subtitle: "Board de iniciativas PMO · Monday.com", load: loadIniciativas },
+    { id: "req",         label: "REQ",          icon: "◆", subtitle: "Requerimientos VALOR Lite · Monday.com", load: loadReq },
+    { id: "page3",       label: "Dashboard 3", icon: "◉", subtitle: "Próximamente", load: null },
+    { id: "page4",       label: "Dashboard 4", icon: "◉", subtitle: "Próximamente", load: null },
+    { id: "page5",       label: "Dashboard 5", icon: "◉", subtitle: "Próximamente", load: null },
+  ];
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // NAVEGACIÓN
+  // ════════════════════════════════════════════════════════════════════════════
+  let activePage     = null;
+  let countdownTimer = null;
+  let remaining      = REFRESH_SECS;
+  let iniInitialPM   = null;
+  let reqInitialPM   = null;
+
+  function buildNav() {
+    document.getElementById("nav-list").innerHTML = PAGES.map(p => `
+      <li>
+        <a class="nav-item ${p.load ? "" : "disabled"}" href="#" data-id="${p.id}" title="${p.label}"
+           onclick="navigate('${p.id}'); return false;">
+          <span class="nav-icon">${p.icon}</span>
+          <span class="nav-label">${p.label}</span>
+          ${p.load ? "" : '<span class="nav-soon">pronto</span>'}
+        </a>
+      </li>`).join("");
+  }
+
+  function navigate(id) {
+    const page = PAGES.find(p => p.id === id);
+    if (!page || !page.load) return;
+    activePage = page;
+    stopCountdown();
+    document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.id === id));
+    document.getElementById("page-title").textContent    = page.label;
+    document.getElementById("page-subtitle").textContent = page.subtitle;
+    document.getElementById("last-update").textContent   = "";
+    page.load(document.getElementById("main"));
+  }
+
+  function refreshPage() {
+    if (activePage?.load) activePage.load(document.getElementById("main"));
+  }
+
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // COUNTDOWN
+  // ════════════════════════════════════════════════════════════════════════════
+  function startCountdown(onExpire) {
+    stopCountdown();
+    remaining = REFRESH_SECS;
+    countdownTimer = setInterval(() => {
+      remaining--;
+      const m = Math.floor(remaining / 60), s = remaining % 60;
+      document.getElementById("countdown").textContent = `Auto-actualiza en ${m}:${String(s).padStart(2,"0")}`;
+      if (remaining <= 0) onExpire();
+    }, 1000);
+  }
+
+  function stopCountdown() {
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    document.getElementById("countdown").textContent = "";
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // UTILIDADES COMPARTIDAS
+  // ════════════════════════════════════════════════════════════════════════════
+  function businessDays(start, end) {
+    let days = 0;
+    const d = new Date(start); d.setDate(d.getDate()+1); d.setHours(0,0,0,0);
+    const e = new Date(end);   e.setHours(0,0,0,0);
+    while (d <= e) { if (d.getDay()!==0&&d.getDay()!==6) days++; d.setDate(d.getDate()+1); }
+    return days;
+  }
+
+  function addBusinessDays(date, n) {
+    const d = new Date(date); d.setHours(0,0,0,0);
+    let added = 0;
+    while (added < n) { d.setDate(d.getDate()+1); if (d.getDay()!==0&&d.getDay()!==6) added++; }
+    return d;
+  }
+
+  function fmtDate(date) {
+    if (!date) return "—";
+    return date.toLocaleDateString("es-GT", { day:"2-digit", month:"short", year:"numeric" });
+  }
+
+  function isToday(date) {
+    if (!date) return false;
+    const t = new Date(); t.setHours(0,0,0,0);
+    const d = new Date(date); d.setHours(0,0,0,0);
+    return d.getTime() === t.getTime();
+  }
+
+  function mondayFetch(query) {
+    return fetch("https://api.monday.com/v2", {
+      method: "POST",
+      headers: { "Authorization": API_KEY, "Content-Type": "application/json", "API-Version": "2024-01" },
+      body: JSON.stringify({ query })
+    }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(j => { if (j.errors) throw new Error(j.errors[0].message); return j; });
+  }
+
+  function getCSSVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function showLoader(container, msg = "Consultando Monday.com...") {
+    container.innerHTML = `<div class="loader"><div class="spinner"></div><span>${msg}</span></div>`;
+  }
+
+  function showError(container, msg) {
+    container.innerHTML = `<div class="error-box"><strong>Error al conectar</strong><br/>${msg}</div>`;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PÁGINA: INICIATIVAS
+  // ════════════════════════════════════════════════════════════════════════════
+  const INI_BOARD_ID        = "18412996100";
+  const CALENDAR_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzW912G4j2LLhXKVOmIRUTR562WkfDhumZqgjRc0uEJ6PjchI6qv_0aL7CuGub_aQZk/exec";
+  const INI_LIMITS     = { "New": 5, "Meeting 1": 10 };
+  const INI_APPROVED   = new Set(["PM Aprobado", "REQ Aprobado"]);
+  const INI_SKIP       = new Set(["Meeting 2"]);
+  const INI_SEC_ORDER  = ["New", "Meeting 1", "PM Aprobado", "REQ Aprobado", "Sin Valor Def"];
+  const INI_SEC_LABEL  = { "New":"Meeting 1", "Meeting 1":"Meeting 2", "PM Aprobado":"PM Aprobado", "REQ Aprobado":"REQ Aprobado", "Sin Valor Def":"En Espera +Info CKU" };
+  const INI_ESTADO_CFG = [
+    { key: "ATRASADO",  label: "Atrasado",  color: "#ef4444" },
+    { key: "PARA HOY",  label: "Para Hoy",  color: "#f59e0b" },
+    { key: "EN TIEMPO", label: "En Tiempo", color: "#10b981" },
+  ];
+  const INI_ACTIVE_STS = new Set(["New", "Meeting 1"]);
+
+  let iniData        = [];
+  let iniPMs         = [];
+  let iniStatuses    = [];
+  let iniEstado      = "";
+  let iniSinAgendar  = false;
+  let calMeetings    = new Map(); // codigo → { M1: [{inicio,fin}], M2: [{inicio,fin}] }
+
+  // ── Calendar helpers ─────────────────────────────────────────────────────
+  async function fetchCalendar() {
+    try {
+      const r = await fetch(CALENDAR_WEBAPP_URL, { redirect: "follow" });
+      return await r.json();
+    } catch(e) {
+      console.warn("Calendar fetch failed:", e);
+      return [];
+    }
+  }
+
+  function buildCalMap(meetings) {
+    const map = new Map();
+    for (const m of meetings) {
+      if (!map.has(m.codigo)) map.set(m.codigo, { M1: [], M2: [] });
+      const type = (m.meeting || "").toUpperCase();
+      if (type === "M1" || type === "M2") {
+        map.get(m.codigo)[type].push({
+          inicio: new Date(m.inicio),
+          fin:    new Date(m.fin)
+        });
+      }
+    }
+    // Sort each list chronologically
+    for (const v of map.values()) {
+      v.M1.sort((a,b) => a.inicio - b.inicio);
+      v.M2.sort((a,b) => a.inicio - b.inicio);
+    }
+    return map;
+  }
+
+  function nextOrLatest(arr) {
+    if (!arr || arr.length === 0) return null;
+    const now = new Date();
+    const upcoming = arr.filter(m => m.inicio >= now);
+    return upcoming.length > 0 ? upcoming[0] : arr[arr.length - 1];
+  }
+
+  function calCell(arr) {
+    const m = nextOrLatest(arr);
+    if (!m) return `<span style="color:var(--text-disabled)">—</span>`;
+    const now   = new Date();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const mDay  = new Date(m.inicio); mDay.setHours(0,0,0,0);
+    const isPast   = m.inicio < now;
+    const isToday  = mDay.getTime() === today.getTime();
+    const color    = isPast ? "var(--text-disabled)" : isToday ? "#f59e0b" : "#10b981";
+    const dateStr  = m.inicio.toLocaleDateString("es-GT", { day:"2-digit", month:"short" });
+    const timeStr  = m.inicio.toLocaleTimeString("es-GT", { hour:"2-digit", minute:"2-digit", hour12:false });
+    const icon     = isPast ? "✓" : "📅";
+    return `<span style="color:${color};font-weight:600;white-space:nowrap;font-size:.8rem">${icon} ${dateStr} ${timeStr}</span>`;
+  }
+
+  async function loadIniciativas(container) {
+    showLoader(container);
+    document.getElementById("refresh-btn").disabled = true;
+    document.getElementById("refresh-btn").textContent = "Actualizando...";
+    document.getElementById("last-update").textContent = "Actualizando...";
+    try {
+      const [json, calData] = await Promise.all([
+        mondayFetch(`{ boards(ids:[${INI_BOARD_ID}]) { items_page(limit:500) { items { id name group { title } column_values { id text } } } } }`),
+        fetchCalendar()
+      ]);
+      calMeetings = buildCalMap(calData);
+      iniRender(container, json.data.boards[0].items_page.items);
+      document.getElementById("last-update").textContent = `Actualizado: ${new Date().toLocaleString("es-GT",{dateStyle:"short",timeStyle:"medium"})}`;
+      startCountdown(() => loadIniciativas(container));
+    } catch (err) {
+      showError(container, err.message);
+      document.getElementById("last-update").textContent = "Error";
+    } finally {
+      document.getElementById("refresh-btn").disabled = false;
+      document.getElementById("refresh-btn").textContent = "↻ Actualizar";
+    }
+  }
+
+  function iniProcess(items) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    return items.map(item => {
+      const col    = id => (item.column_values.find(c=>c.id===id)||{}).text||"";
+      const status = col("color_mm3a94fr"), id_ini = col("pulse_id_mm3atas7");
+      const pm     = col("multiple_person_mm3akwgd"), benefit = col("numeric_mm3ajaxp");
+      const creRaw = col("pulse_log_mm3a84me"), grupo = item.group.title;
+      const meet1  = col("date_mm3aas3p");
+      const meet2  = col("date_mm3at176");
+      if (INI_APPROVED.has(status)) {
+        const creDate = creRaw ? new Date(creRaw.replace(/\s*UTC\s*$/,"").replace(" ","T")) : null;
+        const creacion = creDate && !isNaN(creDate) ? creDate : null;
+        return { id:id_ini, name:item.name, grupo, pm, status, benefit, estado:"APROBADA", dias:null, limite:null, deadline:null, creacion, meet1, meet2 };
+      }
+      if (status === "Sin Valor Def") {
+        const creDate  = creRaw ? new Date(creRaw.replace(/\s*UTC\s*$/,"").replace(" ","T")) : null;
+        const creacion = creDate && !isNaN(creDate) ? creDate : null;
+        const espera   = col("date_mm3gw8yy");
+        return { id:id_ini, name:item.name, grupo, pm, status, benefit, estado:"EN_ESPERA", dias:null, limite:null, deadline:null, creacion, espera, meet1, meet2 };
+      }
+      if (INI_SKIP.has(status)||!status) return { id:id_ini, name:item.name, grupo, pm, status, benefit, estado:"SKIP", dias:null, limite:null, deadline:null, creacion:null };
+      if (INI_LIMITS[status]!==undefined) {
+        const limite = INI_LIMITS[status];
+        let dias=null, estado="Sin fecha", deadline=null, creacion=null;
+        if (creRaw) {
+          const creDate = new Date(creRaw.replace(/\s*UTC\s*$/,"").replace(" ","T"));
+          if (!isNaN(creDate)) { creacion=creDate; dias=businessDays(creDate,today); estado=dias>limite?"ATRASADO":dias===limite?"PARA HOY":"EN TIEMPO"; deadline=addBusinessDays(creDate,limite); }
+        }
+        return { id:id_ini, name:item.name, grupo, pm, status, benefit, estado, dias, limite, deadline, creacion };
+      }
+      return null;
+    }).filter(Boolean);
+  }
+
+  function iniGetFiltered(pms, sts, estado, sinAgendar) {
+    return iniData.filter(r => {
+      if (r.estado === "SKIP") return false;
+      if (pms.length > 0 && !pms.includes(r.pm))    return false;
+      if (sts.length > 0 && !sts.includes(r.status)) return false;
+      if (estado) {
+        if (estado === "PARA HOY") {
+          if (!iniIsParaHoy(r)) return false;
+        } else {
+          if (r.estado !== estado) return false;
+        }
+      }
+      if (sinAgendar) {
+        if (!INI_ACTIVE_STS.has(r.status)) return false;
+        const cal  = calMeetings.get(r.id) || { M1:[], M2:[] };
+        const type = r.status === "New" ? "M1" : "M2";
+        if (cal[type].length > 0) return false;
+      }
+      return true;
+    });
+  }
+  function iniFiltered() { return iniGetFiltered(iniPMs, iniStatuses, iniEstado, iniSinAgendar); }
+
+  function iniIsParaHoy(r) {
+    // Condición 1: el deadline calculado es hoy
+    if (isToday(r.deadline)) return true;
+    // Condición 2: la meeting agendada en calendario es hoy
+    const cal  = calMeetings.get(r.id) || { M1:[], M2:[] };
+    const type = r.status === "New" ? "M1" : r.status === "Meeting 1" ? "M2" : null;
+    if (type) {
+      const m = nextOrLatest(cal[type]);
+      if (m && isToday(m.inicio)) return true;
+    }
+    return false;
+  }
+
+  function iniRenderCards(filtered) {
+    const base = iniGetFiltered(iniPMs, iniStatuses, "", false);
+    const c = { ATRASADO:0, "PARA HOY":0, "EN TIEMPO":0, APROBADA:0 };
+    base.forEach(r => { if (c[r.estado]!==undefined) c[r.estado]++; });
+    // "Para Hoy" incluye deadline=hoy O meeting agendada hoy
+    c["PARA HOY"] = base.filter(r => iniIsParaHoy(r)).length;
+    // "En Tiempo" excluye los que ya están contados en Para Hoy
+    c["EN TIEMPO"] = base.filter(r => r.estado === "EN TIEMPO" && !iniIsParaHoy(r)).length;
+    const sinAgendarCount = iniGetFiltered(iniPMs, iniStatuses, "", true).length;
+    const sel  = e => iniEstado === e ? "card-active" : "";
+    const selS = iniSinAgendar ? "card-active" : "";
+    document.getElementById("ini-cards").innerHTML = `
+      <div class="cards">
+        <div class="card total"><div class="value">${base.filter(r=>INI_ACTIVE_STS.has(r.status)).length}</div><div class="label">En Proceso</div></div>
+        <div class="card atrasado clickable ${sel("ATRASADO")}" onclick="iniToggleEstado('ATRASADO')">
+          <div class="value">${c.ATRASADO}</div><div class="label">Atrasadas</div></div>
+        <div class="card parahoy clickable ${sel("PARA HOY")}" onclick="iniToggleEstado('PARA HOY')">
+          <div class="value">${c["PARA HOY"]}</div><div class="label">Para Hoy</div></div>
+        <div class="card entiempo clickable ${sel("EN TIEMPO")}" onclick="iniToggleEstado('EN TIEMPO')">
+          <div class="value">${c["EN TIEMPO"]}</div><div class="label">En Tiempo</div></div>
+        <div class="card aprobada clickable ${sel("APROBADA")}" onclick="iniToggleEstado('APROBADA')">
+          <div class="value">${c.APROBADA}</div><div class="label">Aprobadas</div></div>
+        <div class="card clickable ${selS}" style="border-color:#f59e0b" onclick="iniToggleSinAgendar()">
+          <div class="value" style="color:#f59e0b">${sinAgendarCount}</div>
+          <div class="label">Sin Agendar</div></div>
+      </div>`;
+  }
+
+  function iniRenderFilters() {
+    const allPMs = [...new Set(iniData.filter(r=>r.estado!=="SKIP"&&r.pm).map(r=>r.pm))].sort();
+    const allSts = INI_SEC_ORDER.filter(s=>iniData.some(r=>r.status===s));
+    const anyActive = iniPMs.length > 0 || iniStatuses.length > 0 || iniEstado;
+
+    const pmOpts = allPMs.map(pm => ({
+      value: pm, label: pm,
+      count: iniGetFiltered([pm], iniStatuses, iniEstado).length
+    }));
+    const stOpts = allSts.map(s => ({
+      value: s, label: INI_SEC_LABEL[s] || s,
+      count: iniGetFiltered(iniPMs, [s], iniEstado).length
+    }));
+
+    document.getElementById("ini-filters").innerHTML = `
+      <div class="filter-row">
+        ${renderMS("ms-ini-pm", "PM",     pmOpts, iniPMs,      "iniTogglePM", "iniToggleAllPM")}
+        ${renderMS("ms-ini-st", "Status", stOpts, iniStatuses, "iniToggleSt", "iniToggleAllSt")}
+        ${anyActive ? `<button class="filter-reset" onclick="iniReset()">✕ Limpiar</button>` : ""}
+      </div>`;
+  }
+
+  function calcPMHealth(pmName) {
+    const items = iniData.filter(r =>
+      r.pm === pmName && INI_ACTIVE_STS.has(r.status) && r.dias !== null && r.limite !== null
+    );
+    const total   = iniData.filter(r => r.pm === pmName && r.estado !== "SKIP").length;
+    const atrasadoItems = items.filter(r => r.estado === "ATRASADO");
+    const atrasados     = atrasadoItems.length;
+    // Promedio de días hábiles de exceso entre los items atrasados
+    const avgOverdue = atrasados > 0
+      ? Math.round(atrasadoItems.reduce((sum, r) => sum + (r.dias - r.limite), 0) / atrasados)
+      : 0;
+    const status = atrasados === 0 ? "on-track"
+      : avgOverdue <= 5             ? "at-risk"
+      :                               "off-track";
+    return { score: avgOverdue, status, active: items.length, total, atrasados };
+  }
+
+  function iniRenderPMHealth() {
+    const el = document.getElementById("ini-pm-health");
+    if (!el) return;
+    const allPMs = [...new Set(iniData.filter(r => r.pm && r.estado !== "SKIP").map(r => r.pm))].sort();
+    const cfg = {
+      "on-track": { color:"#10b981", bg:"#052e1688", label:"On Track",  icon:"✓" },
+      "at-risk":  { color:"#f59e0b", bg:"#451a0388", label:"At Risk",   icon:"⚠" },
+      "off-track":{ color:"#ef4444", bg:"#450a0a88", label:"Off Track", icon:"✕" },
+    };
+    const cards = allPMs.map(pm => {
+      const h       = calcPMHealth(pm);
+      const c       = cfg[h.status];
+      const isActive  = iniPMs.length === 1 && iniPMs[0] === pm;
+      const scoreStr  = h.atrasados === 0 ? "Sin atrasos" : `${h.score} día${h.score!==1?"s":""} prom.`;
+      return `
+        <div class="pm-health-card ${isActive?"ph-active":""}" style="border-color:${c.color}"
+             onclick="iniSelectPM('${pm}')">
+          <div class="pm-health-name">${pm}</div>
+          <div class="pm-health-badge" style="color:${c.color};background:${c.bg}">
+            ${c.icon} ${c.label}
+          </div>
+          <div class="pm-health-score" style="color:${c.color}">${scoreStr}</div>
+          <div class="pm-health-meta">${h.active} en proceso · ${h.atrasados} atrasada${h.atrasados!==1?"s":""} · ${h.total} total</div>
+        </div>`;
+    }).join("");
+    el.innerHTML = `<div class="pm-health-row">${cards}</div>`;
+  }
+
+  function iniSelectPM(pm) {
+    if (iniPMs.length === 1 && iniPMs[0] === pm) {
+      iniPMs = [];
+    } else {
+      iniPMs = [pm];
+    }
+    iniRefresh();
+  }
+
+  function iniRenderSections(filtered) {
+    const byStatus = {};
+    filtered.forEach(r => { if (!byStatus[r.status]) byStatus[r.status]=[]; byStatus[r.status].push(r); });
+    const estadoOrder = e => ({ATRASADO:0,"PARA HOY":1,"EN TIEMPO":2,APROBADA:3,SKIP:4}[e]??99);
+
+    const VISIBLE_SECTIONS = new Set(["New", "Meeting 1", "Sin Valor Def"]);
+    const html = INI_SEC_ORDER.filter(s=>byStatus[s]?.length && VISIBLE_SECTIONS.has(s)).map(s => {
+      const rows=byStatus[s], limite=INI_LIMITS[s], label=INI_SEC_LABEL[s]||s;
+      const calType  = s==="New" ? "M1" : s==="Meeting 1" ? "M2" : null;
+      const isEspera = s==="Sin Valor Def";
+      const atrasados = rows.filter(r=>r.estado==="ATRASADO").length;
+      const limiteBadge = `<span class="limit-badge">${limite?`Límite: ${limite} días hábiles desde creación`:"Sin límite de tiempo"}</span>`;
+      const alertBadge  = atrasados?`<span class="pill pill-atrasado" style="font-size:.7rem">${atrasados} atrasado${atrasados>1?"s":""}</span>`:"";
+      const tableRows = [...rows].sort((a,b)=>estadoOrder(a.estado)-estadoOrder(b.estado)||(b.dias||0)-(a.dias||0)).map(r => {
+        const pct=r.dias!==null&&r.limite?Math.min((r.dias/r.limite)*100,100):0;
+        const bc=pct>100?"#ef4444":pct>=80?"#f59e0b":"#10b981";
+        const progBar=r.dias!==null&&r.limite?`<div class="progress-wrap"><span style="min-width:28px;font-weight:600">${r.dias}</span><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${bc}"></div></div><span style="font-size:.72rem;color:var(--text-muted)">${r.limite}</span></div>`:`<span style="color:var(--text-disabled)">—</span>`;
+        const pm={ATRASADO:["pill-atrasado","✕ Atrasado"],"PARA HOY":["pill-parahoy","⚠ Para Hoy"],"EN TIEMPO":["pill-entiempo","✓ En Tiempo"],APROBADA:["pill-aprobada","✔ Aprobada"],SKIP:["pill-skip","— N/A"]};
+        const [pcls,plbl]=pm[r.estado]||["pill-skip",r.estado];
+        const deadlineHtml=(() => {
+          if (!r.deadline) return `<span style="color:var(--text-disabled)">—</span>`;
+          const td=new Date(); td.setHours(0,0,0,0);
+          const col=r.deadline<td?"#ef4444":r.deadline.getTime()===td.getTime()?"#f59e0b":"#10b981";
+          return `<span style="color:${col};font-weight:600;white-space:nowrap">${fmtDate(r.deadline)}</span>`;
+        })();
+        const iniDiffHtml=(() => {
+          if (!r.deadline) return `<span style="color:var(--text-disabled)">—</span>`;
+          const td=new Date(); td.setHours(0,0,0,0);
+          const d=new Date(r.deadline); d.setHours(0,0,0,0);
+          if (d.getTime()===td.getTime()) return `<span style="color:#f59e0b;font-weight:600">Hoy</span>`;
+          if (d>td) { const days=businessDays(td,d); return `<span style="color:#10b981;font-weight:600">+${days} día${days!==1?"s":""}</span>`; }
+          const days=businessDays(d,td); return `<span style="color:#ef4444;font-weight:600">-${days} día${days!==1?"s":""}</span>`;
+        })();
+        const cal  = calMeetings.get(r.id) || { M1:[], M2:[] };
+        const creCell = `<td style="white-space:nowrap;color:var(--text-secondary)">${r.creacion?fmtDate(r.creacion):"—"}</td>`;
+        const mondayDateCell = v => {
+          if (!v) return `<span style="color:var(--text-disabled)">—</span>`;
+          const d = new Date(v); d.setHours(0,0,0,0);
+          const today = new Date(); today.setHours(0,0,0,0);
+          const color = d < today ? "var(--text-disabled)" : d.getTime()===today.getTime() ? "#f59e0b" : "#10b981";
+          return `<span style="color:${color};font-weight:600;white-space:nowrap">${fmtDate(d)}</span>`;
+        };
+        const rowCells = calType
+          ? `${creCell}<td>${deadlineHtml}</td><td>${iniDiffHtml}</td><td>${calCell(cal[calType])}</td><td>${progBar}</td>`
+          : isEspera
+            ? `${creCell}<td>${mondayDateCell(r.espera)}</td>`
+            : `${creCell}<td>${mondayDateCell(r.meet1)}</td><td>${mondayDateCell(r.meet2)}</td>`;
+        return `<tr>
+          <td class="ini-id">${r.id||"—"}</td>
+          <td class="ini-name">${r.name}</td>
+          <td class="pm-name">${r.pm||`<span style="color:var(--text-disabled)">—</span>`}</td>
+          ${rowCells}
+          <td><span class="pill ${pcls}">${plbl}</span></td>
+        </tr>`;
+      }).join("");
+      return `
+        <div class="section">
+          <div class="section-header"><h2>${label}</h2><span class="badge">${rows.length} items</span>${limiteBadge}${alertBadge}</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Iniciativa</th><th>PM</th>${calType
+  ? `<th>Creacion</th><th>Deadline</th><th>Diferencia</th><th>Agendado</th><th>Días Háb. / Límite</th>`
+  : isEspera
+    ? `<th>Creacion</th><th>Espera</th>`
+    : `<th>Creacion</th><th>Meet 1</th><th>Meet 2</th>`
+}<th>Estado</th></tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table></div>
+        </div>`;
+    }).join("");
+
+    document.getElementById("ini-sections").innerHTML = html ||
+      `<div style="padding:40px;text-align:center;color:var(--text-muted)">Sin resultados para los filtros seleccionados.</div>`;
+  }
+
+  function iniRefresh() {
+    const f = iniFiltered();
+    iniRenderFilters();
+    iniRenderCards(f);
+    iniRenderPMHealth();
+    iniRenderSections(f);
+  }
+  function iniTogglePM(v, checked) {
+    iniPMs = checked ? [...iniPMs.filter(x=>x!==v), v] : iniPMs.filter(x=>x!==v);
+    iniRefresh();
+  }
+  function iniToggleAllPM(checked) { iniPMs = []; iniRefresh(); }
+  function iniToggleSt(v, checked) {
+    iniStatuses = checked ? [...iniStatuses.filter(x=>x!==v), v] : iniStatuses.filter(x=>x!==v);
+    iniRefresh();
+  }
+  function iniToggleAllSt(checked) { iniStatuses = []; iniRefresh(); }
+  function iniToggleEstado(estado) {
+    iniEstado = iniEstado === estado ? "" : estado;
+    if (iniEstado) iniSinAgendar = false; // mutuamente exclusivos
+    iniRefresh();
+  }
+  function iniToggleSinAgendar() {
+    iniSinAgendar = !iniSinAgendar;
+    if (iniSinAgendar) iniEstado = "";
+    iniRefresh();
+  }
+  function iniReset() { iniPMs=[]; iniStatuses=[]; iniEstado=""; iniSinAgendar=false; iniRefresh(); }
+
+  function iniRender(container, items) {
+    iniData=iniProcess(items);
+    iniPMs = iniInitialPM ? [iniInitialPM] : []; iniInitialPM = null;
+    iniStatuses=[]; iniEstado="";
+    container.innerHTML = `
+      <div id="ini-filters"></div>
+      <div id="ini-cards"></div>
+      <div id="ini-pm-health"></div>
+      <div id="ini-sections"></div>`;
+    const f = iniFiltered();
+    iniRenderFilters(); iniRenderCards(f); iniRenderPMHealth(); iniRenderSections(f);
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PÁGINA: REQ (Requerimientos VALOR Lite)
+  // ════════════════════════════════════════════════════════════════════════════
+  const REQ_BOARD_ID = "18413204916";
+
+  const REQ_COLS = {
+    id:       "pulse_id_mm3fs4r8",
+    pm:       "multiple_person_mm3gq5vr",
+    resp:     "multiple_person_mkvdkw7j",
+    status:   "status",
+    cpmStart: "timeline9",          // "2026-05-27 - 2026-05-27" — extraer fecha inicio
+    estDev:   "date_mm3gqxw0",      // Est DEV
+    costRH:   "labor_budget_spent",
+    costSoft: "numeric_mm3gbavc",
+    benefit:  "numeric_mkvcd6nf",
+    creation: "pulse_log_mkvyjb6s",
+    tld:      "dropdown_mm3gpacy",
+    vDone:    "date_mm3ggd8v",      // V Done  (Aprobación)
+    aDone:    "date_mm3gfn1r",      // A Done  (Desarrollo)
+    lDone:    "date_mm3g8mqz",      // L Done  (Operación)
+    oDone:    "date_mm3g5j38",      // O Done  (Cierre ROI)
+  };
+
+  const REQ_GROUP_LABEL = {
+    "Valuación | Req Terminado":   "Valuación",
+    "Aprobación | Value Gate":     "Aprobación",
+    "Launch | Desarrollo":         "Desarrollo",
+    "Operación | Implementación":  "Operación",
+    "Revisión | Cierre ROI":       "Cierre ROI",
+    "REQ Cerrados":                "Cerrados",
+    "En espera +Info CKU":         "En Espera",
+  };
+
+  const REQ_GROUP_COLOR = {
+    "Valuación":  "#6c63ff",
+    "Aprobación": "#3b82f6",
+    "Desarrollo": "#f59e0b",
+    "Operación":  "#10b981",
+    "Cierre ROI": "#14b8a6",
+    "Cerrados":   "#9ca3af",
+    "En Espera":  "#ef4444",
+  };
+
+  const REQ_PIPELINE = ["Valuación","Aprobación","Desarrollo","Operación","Cierre ROI","Cerrados","En Espera"];
+
+  let reqData     = [];
+  let reqPMs      = [];
+  let reqStatuses = [];
+  let reqGroups   = [];
+  let reqFase     = "";
+  let reqEstado   = "";   // "" = todos (card filter: ATRASADO, PARA HOY, EN TIEMPO, EN PROCESO)
+  let reqChart  = null;
+
+  async function loadReq(container) {
+    showLoader(container);
+    document.getElementById("refresh-btn").disabled = true;
+    document.getElementById("refresh-btn").textContent = "Actualizando...";
+    document.getElementById("last-update").textContent = "Actualizando...";
+    try {
+      const json  = await mondayFetch(`{ boards(ids:[${REQ_BOARD_ID}]) { items_page(limit:500) { items { id name group { title } column_values { id text } } } } }`);
+      reqRender(container, json.data.boards[0].items_page.items);
+      document.getElementById("last-update").textContent = `Actualizado: ${new Date().toLocaleString("es-GT",{dateStyle:"short",timeStyle:"medium"})}`;
+      startCountdown(() => loadReq(container));
+    } catch(err) {
+      showError(container, err.message);
+      document.getElementById("last-update").textContent = "Error";
+    } finally {
+      document.getElementById("refresh-btn").disabled = false;
+      document.getElementById("refresh-btn").textContent = "↻ Actualizar";
+    }
+  }
+
+  // Grupos considerados activos (en proceso)
+  const REQ_ACTIVE_GRUPOS = new Set(["Valuación","Aprobación","Desarrollo","Operación","Cierre ROI"]);
+
+  function reqProcess(items) {
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    const pd = s => {
+      if (!s || !s.trim()) return null;
+      const d = new Date(s.trim()); d.setHours(0,0,0,0);
+      return isNaN(d) ? null : d;
+    };
+
+    return items.map(item => {
+      const col     = id => (item.column_values.find(c=>c.id===id)||{}).text||"";
+      const grpFull = item.group.title;
+      const grp     = REQ_GROUP_LABEL[grpFull] || grpFull;
+      const costRH  = parseFloat(col(REQ_COLS.costRH))  || 0;
+      const costSft = parseFloat(col(REQ_COLS.costSoft)) || 0;
+      const benefit = parseFloat(col(REQ_COLS.benefit))  || 0;
+      const tld     = col(REQ_COLS.tld);
+
+      // Fechas de columnas
+      const cpmStart = pd(col(REQ_COLS.cpmStart).split(" - ")[0]);
+      const vDone    = pd(col(REQ_COLS.vDone));
+      const aDone    = pd(col(REQ_COLS.aDone));
+      const lDone    = pd(col(REQ_COLS.lDone));
+      const oDone    = pd(col(REQ_COLS.oDone));
+      const estDev   = pd(col(REQ_COLS.estDev));
+
+      // ── Calcular deadline por grupo ──────────────────────────────────────
+      let startDate = null;
+      let deadline  = null;
+
+      if (grp === "Valuación") {
+        startDate = cpmStart;
+        if (startDate) deadline = addBusinessDays(startDate, 1);
+
+      } else if (grp === "Aprobación") {
+        startDate = vDone;
+        if (startDate) deadline = addBusinessDays(startDate, 2);
+
+      } else if (grp === "Desarrollo") {
+        startDate = aDone;
+        if (startDate) {
+          if (estDev) {
+            deadline = estDev;                             // Est DEV como deadline directo
+          } else if (tld === "JA")    { deadline = addBusinessDays(startDate, 7);  }
+            else if (tld === "LM")    { deadline = addBusinessDays(startDate, 32); }
+            else if (tld === "S/dev") { deadline = new Date(startDate);            }
+        }
+
+      } else if (grp === "Operación") {
+        startDate = lDone;
+        if (startDate) deadline = addBusinessDays(startDate, 3);
+
+      } else if (grp === "Cierre ROI") {
+        startDate = oDone;
+        if (startDate) deadline = addBusinessDays(startDate, 20);
+      }
+
+      // ── Calcular estado ──────────────────────────────────────────────────
+      let estado = grp === "Cerrados"   ? "CERRADO"
+                 : grp === "En Espera"  ? "EN_ESPERA"
+                 :                        "EN PROCESO";
+
+      let dias = null, limite = null;
+
+      if (deadline && REQ_ACTIVE_GRUPOS.has(grp)) {
+        const dl = new Date(deadline); dl.setHours(0,0,0,0);
+        estado = dl < today                       ? "ATRASADO"
+               : dl.getTime() === today.getTime() ? "PARA HOY"
+               :                                    "EN TIEMPO";
+        if (startDate) {
+          dias   = businessDays(startDate, today);
+          limite = businessDays(startDate, deadline);
+        }
+      }
+
+      return {
+        id:       col(REQ_COLS.id),
+        name:     item.name,
+        grupo:    grp,
+        pm:       col(REQ_COLS.pm),
+        resp:     col(REQ_COLS.resp),
+        status:   col(REQ_COLS.status),
+        costRH, costSft, benefit,
+        valueNet: benefit - costRH - costSft,
+        tld,
+        creation: col(REQ_COLS.creation),
+        estado, deadline, inicio: startDate, dias, limite,
+      };
+    });
+  }
+
+  function reqGetFiltered(pms, sts, grps, fase, estado) {
+    return reqData.filter(r => {
+      if (r.estado === "CERRADO")    return false;
+      if (pms.length  > 0 && !pms.includes(r.pm))     return false;
+      if (sts.length  > 0 && !sts.includes(r.status)) return false;
+      if (grps.length > 0 && !grps.includes(r.grupo)) return false;
+      if (fase   && r.grupo  !== fase)   return false;
+      if (estado && r.estado !== estado) return false;
+      return true;
+    });
+  }
+  function reqFiltered() { return reqGetFiltered(reqPMs, reqStatuses, reqGroups, reqFase, reqEstado); }
+
+  function fmtMoney(n) {
+    if (!n) return "—";
+    return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+
+  function reqRenderCards(filtered) {
+    const base = reqGetFiltered(reqPMs, reqStatuses, reqGroups, reqFase, "");
+    const c = { ATRASADO:0, "PARA HOY":0, "EN TIEMPO":0, "EN PROCESO":0, "EN_ESPERA":0 };
+    base.forEach(r => { if (c[r.estado]!==undefined) c[r.estado]++; });
+    const totalCost    = filtered.reduce((s,r)=>s+r.costRH+r.costSft, 0);
+    const totalBenefit = filtered.reduce((s,r)=>s+r.benefit, 0);
+    const totalValue   = totalBenefit - totalCost;
+    const sel = e => reqEstado === e ? "card-active" : "";
+
+    document.getElementById("req-cards").innerHTML = `
+      <div class="cards">
+        <div class="card total"><div class="value">${c["EN PROCESO"]}</div><div class="label">En Proceso</div></div>
+        <div class="card atrasado clickable ${sel("ATRASADO")}" onclick="reqToggleEstado('ATRASADO')">
+          <div class="value">${c.ATRASADO}</div><div class="label">Atrasados</div></div>
+        <div class="card parahoy clickable ${sel("PARA HOY")}" onclick="reqToggleEstado('PARA HOY')">
+          <div class="value">${c["PARA HOY"]}</div><div class="label">Para Hoy</div></div>
+        <div class="card entiempo clickable ${sel("EN TIEMPO")}" onclick="reqToggleEstado('EN TIEMPO')">
+          <div class="value">${c["EN TIEMPO"]}</div><div class="label">En Tiempo</div></div>
+        <div class="card clickable ${sel("EN_ESPERA")}" style="border-color:${REQ_GROUP_COLOR["En Espera"]}" onclick="reqToggleEstado('EN_ESPERA')">
+          <div class="value" style="color:${REQ_GROUP_COLOR["En Espera"]}">${c["EN_ESPERA"]}</div><div class="label">En Espera</div></div>
+        <div class="card" style="border-color:#ef4444"><div class="value" style="color:#ef4444;font-size:1.4rem">${fmtMoney(totalCost)}</div><div class="label">Costo Total</div></div>
+        <div class="card" style="border-color:#10b981"><div class="value" style="color:#10b981;font-size:1.4rem">${fmtMoney(totalBenefit)}</div><div class="label">Benefit Total</div></div>
+        <div class="card" style="border-color:#6c63ff"><div class="value" style="color:#6c63ff;font-size:1.4rem">${fmtMoney(totalValue)}</div><div class="label">Beneficio Neto</div></div>
+      </div>`;
+  }
+
+  function reqToggleEstado(estado) {
+    reqEstado = reqEstado === estado ? "" : estado;
+    reqRefresh();
+  }
+
+  function reqRenderFilters() {
+    const allPMs  = [...new Set(reqData.filter(r=>r.pm).map(r=>r.pm))].sort();
+    const allSts  = [...new Set(reqData.filter(r=>r.status).map(r=>r.status))].sort();
+    const allGrps = REQ_PIPELINE.filter(g=>reqData.some(r=>r.grupo===g));
+    const anyActive = reqPMs.length > 0 || reqStatuses.length > 0 || reqGroups.length > 0 || reqFase;
+
+    const pmOpts  = allPMs.map(pm => ({ value:pm, label:pm, count: reqGetFiltered([pm], reqStatuses, reqGroups, reqFase, reqEstado).length }));
+    const stOpts  = allSts.map(st => ({ value:st, label:st, count: reqGetFiltered(reqPMs, [st], reqGroups, reqFase, reqEstado).length }));
+    const grpOpts = allGrps.map(g  => ({ value:g,  label:g,  count: reqGetFiltered(reqPMs, reqStatuses, [g], reqFase, reqEstado).length }));
+
+    document.getElementById("req-filters").innerHTML = `
+      <div class="filter-row">
+        ${renderMS("ms-req-pm",  "PM",     pmOpts,  reqPMs,      "reqTogglePM",  "reqToggleAllPM")}
+        ${renderMS("ms-req-st",  "Status", stOpts,  reqStatuses, "reqToggleSt",  "reqToggleAllSt")}
+        ${renderMS("ms-req-grp", "Fase",   grpOpts, reqGroups,   "reqToggleGrp", "reqToggleAllGrp")}
+        ${anyActive ? `<button class="filter-reset" onclick="reqReset()">✕ Limpiar</button>` : ""}
+      </div>`;
+  }
+
+  function reqRenderPMHealth() {
+    const el = document.getElementById("req-pm-health");
+    if (!el) return;
+    const allPMs = [...new Set(reqData.filter(r => r.pm && REQ_ACTIVE_GRUPOS.has(r.grupo)).map(r => r.pm))].sort();
+    const cfg = {
+      "on-track": { color:"#10b981", bg:"#052e1688", label:"On Track",  icon:"✓" },
+      "at-risk":  { color:"#f59e0b", bg:"#451a0388", label:"At Risk",   icon:"⚠" },
+      "off-track":{ color:"#ef4444", bg:"#450a0a88", label:"Off Track", icon:"✕" },
+    };
+    const cards = allPMs.map(pm => {
+      const pmItems       = reqData.filter(r => r.pm === pm && REQ_ACTIVE_GRUPOS.has(r.grupo));
+      const atrasadoItems = pmItems.filter(r => r.estado === "ATRASADO" && r.dias !== null && r.limite !== null);
+      const atrasados     = atrasadoItems.length;
+      const avgOverdue    = atrasados > 0
+        ? Math.round(atrasadoItems.reduce((s, r) => s + (r.dias - r.limite), 0) / atrasados)
+        : 0;
+      const status   = atrasados === 0 ? "on-track" : avgOverdue <= 5 ? "at-risk" : "off-track";
+      const c        = cfg[status];
+      const isActive = reqPMs.length === 1 && reqPMs[0] === pm;
+      const scoreStr = atrasados === 0 ? "Sin atrasos" : `${avgOverdue} día${avgOverdue!==1?"s":""} prom.`;
+      return `
+        <div class="pm-health-card ${isActive?"ph-active":""}" style="border-color:${c.color}"
+             onclick="reqSelectPM('${pm}')">
+          <div class="pm-health-name">${pm}</div>
+          <div class="pm-health-badge" style="color:${c.color};background:${c.bg}">${c.icon} ${c.label}</div>
+          <div class="pm-health-score" style="color:${c.color}">${scoreStr}</div>
+          <div class="pm-health-meta">${pmItems.length} en proceso · ${atrasados} atrasada${atrasados!==1?"s":""} · ${pmItems.filter(r=>r.estado==="EN TIEMPO").length} en tiempo</div>
+        </div>`;
+    }).join("");
+    el.innerHTML = `<div class="pm-health-row">${cards}</div>`;
+  }
+
+  function reqSelectPM(pm) {
+    reqPMs = reqPMs.length === 1 && reqPMs[0] === pm ? [] : [pm];
+    reqRefresh();
+  }
+
+  function reqRenderTable(filtered) {
+    if (!filtered.length) return `<div style="padding:40px;text-align:center;color:var(--text-muted)">Sin resultados para los filtros seleccionados.</div>`;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diffCell = r => {
+      if (!r.deadline) return `<span style="color:var(--text-disabled)">—</span>`;
+      const d = new Date(r.deadline); d.setHours(0,0,0,0);
+      if (d.getTime() === today.getTime()) {
+        return `<span style="color:#f59e0b;font-weight:600">Hoy</span>`;
+      } else if (d > today) {
+        const days = businessDays(today, d);
+        return `<span style="color:#10b981;font-weight:600">+${days} día${days!==1?"s":""}</span>`;
+      } else {
+        const days = businessDays(d, today);
+        return `<span style="color:#ef4444;font-weight:600">-${days} día${days!==1?"s":""}</span>`;
+      }
+    };
+    const deadlineCell = r => {
+      if (!r.deadline) return `<span style="color:var(--text-disabled)">—</span>`;
+      const d = new Date(r.deadline); d.setHours(0,0,0,0);
+      const color = d < today ? "#ef4444" : d.getTime()===today.getTime() ? "#f59e0b" : "#10b981";
+      return `<span style="color:${color};font-weight:600;white-space:nowrap">${fmtDate(r.deadline)}</span>`;
+    };
+    const estadoPill = r => {
+      const map = {
+        "ATRASADO":  ["pill-atrasado","✕ Atrasado"],
+        "PARA HOY":  ["pill-parahoy", "⚠ Para Hoy"],
+        "EN TIEMPO": ["pill-entiempo","✓ En Tiempo"],
+        "EN PROCESO":["pill-skip",    "En Proceso"],
+        "EN_ESPERA": ["pill-skip",    "En Espera"],
+      };
+      const [cls, lbl] = map[r.estado] || ["pill-skip", r.estado];
+      return `<span class="pill ${cls}" style="font-size:.68rem">${lbl}</span>`;
+    };
+    const rows = [...filtered].sort((a,b)=>REQ_PIPELINE.indexOf(a.grupo)-REQ_PIPELINE.indexOf(b.grupo)).map(r=>`
+      <tr>
+        <td class="ini-id">${r.id||"—"}</td>
+        <td class="ini-name">${r.name}</td>
+        <td class="pm-name">${r.pm||"—"}</td>
+        <td style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap">${r.resp||"—"}</td>
+        <td><span style="font-size:.72rem;font-weight:600;color:${REQ_GROUP_COLOR[r.grupo]||"var(--text-muted)"}">${r.grupo}</span></td>
+        <td>${estadoPill(r)}</td>
+        <td style="text-align:right;color:var(--text-secondary);white-space:nowrap">${(r.costRH+r.costSft)>0?fmtMoney(r.costRH+r.costSft):"—"}</td>
+        <td style="text-align:right;font-weight:600;color:#10b981;white-space:nowrap">${r.benefit?fmtMoney(r.benefit):"—"}</td>
+        <td style="color:var(--text-secondary);font-size:.8rem;white-space:nowrap">${r.tld||"—"}</td>
+        <td style="color:var(--text-secondary);white-space:nowrap">${r.inicio?fmtDate(r.inicio):"—"}</td>
+        <td>${deadlineCell(r)}</td>
+        <td>${diffCell(r)}</td>
+      </tr>`).join("");
+
+    return `<div class="table-wrap"><table>
+      <thead><tr>
+        <th>REQ ID</th><th>Requerimiento</th><th>PM</th><th>Resp</th><th>Fase</th><th>Estado</th>
+        <th style="text-align:right">Costo</th><th style="text-align:right">Benefit</th><th>TLD</th><th>Inicio</th><th>Deadline</th><th>Diferencia</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+
+  function reqRefresh() {
+    const f = reqFiltered();
+    reqRenderFilters();
+    reqRenderCards(f);
+    reqRenderPMHealth();
+    document.getElementById("req-table").innerHTML = reqRenderTable(f);
+    const badge = document.getElementById("req-count");
+    if (badge) badge.textContent = `${f.length} items`;
+  }
+  function reqTogglePM(v, checked)  { reqPMs      = checked ? [...reqPMs.filter(x=>x!==v),v]      : reqPMs.filter(x=>x!==v);      reqRefresh(); }
+  function reqToggleAllPM()         { reqPMs=[]; reqRefresh(); }
+  function reqToggleSt(v, checked)  { reqStatuses = checked ? [...reqStatuses.filter(x=>x!==v),v] : reqStatuses.filter(x=>x!==v); reqRefresh(); }
+  function reqToggleAllSt()         { reqStatuses=[]; reqRefresh(); }
+  function reqToggleGrp(v, checked) { reqGroups   = checked ? [...reqGroups.filter(x=>x!==v),v]   : reqGroups.filter(x=>x!==v);   reqRefresh(); }
+  function reqToggleAllGrp()        { reqGroups=[]; reqRefresh(); }
+  function reqToggleFase(fase)      { reqFase = reqFase === fase ? "" : fase; reqRefresh(); }
+  function reqReset()               { reqPMs=[]; reqStatuses=[]; reqGroups=[]; reqFase=""; reqEstado=""; reqRefresh(); }
+
+  function reqRender(container, items) {
+    reqData=reqProcess(items);
+    reqPMs = reqInitialPM ? [reqInitialPM] : []; reqInitialPM = null;
+    reqStatuses=[]; reqGroups=[]; reqFase=""; reqEstado="";
+    container.innerHTML = `
+      <div id="req-filters"></div>
+      <div id="req-cards"></div>
+      <div id="req-pm-health"></div>
+      <div class="section">
+        <div class="section-header"><h2>Detalle de Requerimientos</h2><span class="badge" id="req-count">${items.length} items</span></div>
+        <div id="req-table"></div>
+      </div>`;
+    const f = reqFiltered();
+    reqRenderFilters(); reqRenderCards(f); reqRenderPMHealth();
+    document.getElementById("req-table").innerHTML = reqRenderTable(f);
+    document.getElementById("req-count").textContent = `${f.length} items`;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PÁGINA: OVERVIEW (Portafolios PMO)
+  // ════════════════════════════════════════════════════════════════════════════
+
+  function overviewGoToIni(pm) { iniInitialPM = pm || null; navigate("iniciativas"); }
+  function overviewGoToReq(pm) { reqInitialPM = pm || null; navigate("req"); }
+
+  async function loadOverview(container) {
+    showLoader(container, "Cargando portafolios...");
+    document.getElementById("refresh-btn").disabled = true;
+    document.getElementById("refresh-btn").textContent = "Actualizando...";
+    document.getElementById("last-update").textContent = "Actualizando...";
+    try {
+      const [iniJson, reqJson, calData] = await Promise.all([
+        mondayFetch(`{ boards(ids:[${INI_BOARD_ID}]) { items_page(limit:500) { items { id name group { title } column_values { id text } } } } }`),
+        mondayFetch(`{ boards(ids:[${REQ_BOARD_ID}]) { items_page(limit:500) { items { id name group { title } column_values { id text } } } } }`),
+        fetchCalendar()
+      ]);
+      calMeetings = buildCalMap(calData);
+      const iniItems = iniProcess(iniJson.data.boards[0].items_page.items);
+      const reqItems = reqProcess(reqJson.data.boards[0].items_page.items);
+      overviewRender(container, iniItems, reqItems);
+      document.getElementById("last-update").textContent = `Actualizado: ${new Date().toLocaleString("es-GT",{dateStyle:"short",timeStyle:"medium"})}`;
+      startCountdown(() => loadOverview(container));
+    } catch(err) {
+      showError(container, err.message);
+      document.getElementById("last-update").textContent = "Error";
+    } finally {
+      document.getElementById("refresh-btn").disabled = false;
+      document.getElementById("refresh-btn").textContent = "↻ Actualizar";
+    }
+  }
+
+  function overviewRender(container, iniItems, reqItems) {
+    const iniProc = iniItems.filter(r => INI_ACTIVE_STS.has(r.status));
+    const reqProc = reqItems.filter(r => REQ_ACTIVE_GRUPOS.has(r.grupo));
+    const G = {
+      iniTotal:    iniProc.length,
+      iniAtrasado: iniProc.filter(r => r.estado === "ATRASADO").length,
+      iniParaHoy:  iniItems.filter(r => iniIsParaHoy(r)).length,
+      iniEnTiempo: iniProc.filter(r => r.estado === "EN TIEMPO" && !iniIsParaHoy(r)).length,
+      iniAprobada: iniItems.filter(r => r.estado === "APROBADA").length,
+      reqTotal:    reqProc.length,
+      reqAtrasado: reqProc.filter(r => r.estado === "ATRASADO").length,
+      reqParaHoy:  reqProc.filter(r => r.estado === "PARA HOY").length,
+      reqEnTiempo: reqProc.filter(r => r.estado === "EN TIEMPO").length,
+      reqEnEspera: reqItems.filter(r => r.estado === "EN_ESPERA").length,
+    };
+
+    // ── Índice de salud ──────────────────────────────────────────────────────
+    const hEnTiempo = iniProc.filter(r => r.estado === "EN TIEMPO").length
+                    + reqProc.filter(r => r.estado === "EN TIEMPO").length;
+    const hParaHoy  = iniProc.filter(r => r.estado === "PARA HOY").length
+                    + reqProc.filter(r => r.estado === "PARA HOY").length;
+    const hAtrasado = iniProc.filter(r => r.estado === "ATRASADO").length
+                    + reqProc.filter(r => r.estado === "ATRASADO").length;
+    const hTotal    = hEnTiempo + hParaHoy + hAtrasado;
+    const healthPct = hTotal === 0 ? 100
+      : Math.round(((hEnTiempo + hParaHoy * 0.5) / hTotal) * 100);
+    const hColor  = healthPct >= 80 ? "#10b981" : healthPct >= 50 ? "#f59e0b" : "#ef4444";
+    const hBg     = healthPct >= 80 ? "#052e1688" : healthPct >= 50 ? "#451a0388" : "#450a0a88";
+    const hLabel  = healthPct >= 80 ? "Saludable" : healthPct >= 50 ? "En Riesgo" : "Crítico";
+    const hIcon   = healthPct >= 80 ? "✓" : healthPct >= 50 ? "⚠" : "✕";
+
+    const allPMs = [...new Set([
+      ...iniItems.filter(r => r.pm && r.estado !== "SKIP").map(r => r.pm),
+      ...reqItems.filter(r => r.pm && r.estado !== "CERRADO").map(r => r.pm),
+    ])].sort();
+
+    const healthCfg = {
+      "on-track":  { color:"#10b981", bg:"#052e1688", label:"On Track",  icon:"✓" },
+      "at-risk":   { color:"#f59e0b", bg:"#451a0388", label:"At Risk",   icon:"⚠" },
+      "off-track": { color:"#ef4444", bg:"#450a0a88", label:"Off Track", icon:"✕" },
+    };
+
+    const mkStat = (n, color, label) =>
+      n > 0 ? `<div class="pf-stat"><span class="pf-dot" style="background:${color}"></span>${n} ${label}</div>` : "";
+
+    const pmCards = allPMs.map(pm => {
+      const ini    = iniItems.filter(r => r.pm === pm && r.estado !== "SKIP");
+      const req    = reqItems.filter(r => r.pm === pm && r.estado !== "CERRADO");
+      const iniAct = ini.filter(r => INI_ACTIVE_STS.has(r.status));
+      const reqAct = req.filter(r => REQ_ACTIVE_GRUPOS.has(r.grupo));
+      const iAtr   = iniAct.filter(r => r.estado === "ATRASADO").length;
+      const rAtr   = reqAct.filter(r => r.estado === "ATRASADO").length;
+      const health = (iAtr + rAtr) === 0 ? "on-track" : (iAtr + rAtr) <= 2 ? "at-risk" : "off-track";
+      const hc     = healthCfg[health];
+      const pmQ    = pm.replace(/'/g, "\\'");
+
+      const iniParaHoyN  = ini.filter(r => iniIsParaHoy(r)).length;
+      const iniEnTiempoN = iniAct.filter(r => r.estado === "EN TIEMPO" && !iniIsParaHoy(r)).length;
+      const iniAprobadaN = ini.filter(r => r.estado === "APROBADA").length;
+      const iniHas = iniAct.length > 0 || iniAprobadaN > 0;
+
+      const reqParaHoyN  = reqAct.filter(r => r.estado === "PARA HOY").length;
+      const reqEnTiempoN = reqAct.filter(r => r.estado === "EN TIEMPO").length;
+      const reqEnEsperaN = req.filter(r => r.estado === "EN_ESPERA").length;
+      const reqHas = reqAct.length > 0 || reqEnEsperaN > 0;
+
+      const iniSection = `
+        <div class="pf-section${!iniHas?" pf-empty":""}" onclick="overviewGoToIni('${pmQ}')">
+          <div class="pf-section-head">
+            <span class="pf-section-label">Iniciativas</span>
+            ${iniHas ? '<span class="pf-go">Ver detalle →</span>' : ""}
+          </div>
+          ${iniHas ? `<div class="pf-stats">
+            ${mkStat(iniAct.length, "#6b7280", "en proceso")}
+            ${mkStat(iAtr, "#ef4444", `atrasada${iAtr!==1?"s":""}`)}
+            ${mkStat(iniParaHoyN, "#f59e0b", "para hoy")}
+            ${mkStat(iniEnTiempoN, "#10b981", "en tiempo")}
+            ${mkStat(iniAprobadaN, "#6c63ff", `aprobada${iniAprobadaN!==1?"s":""}`)}
+          </div>` : `<div style="color:var(--text-disabled);font-size:.8rem;padding-top:4px">Sin iniciativas activas</div>`}
+        </div>`;
+
+      const reqSection = `
+        <div class="pf-section${!reqHas?" pf-empty":""}" onclick="overviewGoToReq('${pmQ}')">
+          <div class="pf-section-head">
+            <span class="pf-section-label">REQ</span>
+            ${reqHas ? '<span class="pf-go">Ver detalle →</span>' : ""}
+          </div>
+          ${reqHas ? `<div class="pf-stats">
+            ${mkStat(reqAct.length, "#6b7280", "en proceso")}
+            ${mkStat(rAtr, "#ef4444", `atrasado${rAtr!==1?"s":""}`)}
+            ${mkStat(reqParaHoyN, "#f59e0b", "para hoy")}
+            ${mkStat(reqEnTiempoN, "#10b981", "en tiempo")}
+            ${mkStat(reqEnEsperaN, "#9ca3af", "en espera")}
+          </div>` : `<div style="color:var(--text-disabled);font-size:.8rem;padding-top:4px">Sin REQs activos</div>`}
+        </div>`;
+
+      return `
+        <div class="pf-card" style="border-color:${hc.color}">
+          <div class="pf-header">
+            <span class="pf-name">${pm}</span>
+            <span class="pf-badge" style="color:${hc.color};background:${hc.bg}">${hc.icon} ${hc.label}</span>
+          </div>
+          <div class="pf-boards">
+            ${iniSection}
+            <div class="pf-divider"></div>
+            ${reqSection}
+          </div>
+        </div>`;
+    }).join("");
+
+    container.innerHTML = `
+      <div class="health-card" style="border-color:${hColor}">
+        <div class="health-title">Índice de Salud del Portafolio PMO</div>
+        <div class="health-row">
+          <div class="health-pct" style="color:${hColor}">${healthPct}%</div>
+          <div class="health-bar-outer">
+            <div class="health-bar-fill" style="width:${healthPct}%;background:${hColor}"></div>
+          </div>
+          <span class="health-badge-lg" style="color:${hColor};background:${hBg}">${hIcon} ${hLabel}</span>
+        </div>
+        <div class="health-breakdown">
+          <span style="color:#10b981">✓ ${hEnTiempo} en tiempo</span>
+          <span style="color:#f59e0b">⚠ ${hParaHoy} para hoy</span>
+          <span style="color:#ef4444">✕ ${hAtrasado} atrasados</span>
+          <span style="color:var(--text-muted)">${hTotal} activos totales (ini + req)</span>
+        </div>
+      </div>
+      <div class="pf-global">
+        <div class="pf-global-block" onclick="overviewGoToIni(null)">
+          <div class="pf-global-title">Iniciativas <span style="font-size:.72rem;opacity:.5">→ ver dashboard</span></div>
+          <div class="pf-global-stats">
+            <span class="pf-gstat" style="color:var(--text-primary)">${G.iniTotal} en proceso</span>
+            <span class="pf-gstat" style="color:#ef4444">${G.iniAtrasado} atrasadas</span>
+            <span class="pf-gstat" style="color:#f59e0b">${G.iniParaHoy} para hoy</span>
+            <span class="pf-gstat" style="color:#10b981">${G.iniEnTiempo} en tiempo</span>
+            <span class="pf-gstat" style="color:#6c63ff">${G.iniAprobada} aprobadas</span>
+          </div>
+        </div>
+        <div class="pf-global-sep"></div>
+        <div class="pf-global-block" onclick="overviewGoToReq(null)">
+          <div class="pf-global-title">REQ <span style="font-size:.72rem;opacity:.5">→ ver dashboard</span></div>
+          <div class="pf-global-stats">
+            <span class="pf-gstat" style="color:var(--text-primary)">${G.reqTotal} en proceso</span>
+            <span class="pf-gstat" style="color:#ef4444">${G.reqAtrasado} atrasados</span>
+            <span class="pf-gstat" style="color:#f59e0b">${G.reqParaHoy} para hoy</span>
+            <span class="pf-gstat" style="color:#10b981">${G.reqEnTiempo} en tiempo</span>
+            <span class="pf-gstat" style="color:#9ca3af">${G.reqEnEspera} en espera</span>
+          </div>
+        </div>
+      </div>
+      <div class="section-header" style="margin-top:24px;margin-bottom:16px">
+        <h2>Portafolios por PM</h2><span class="badge">${allPMs.length} PM${allPMs.length!==1?"s":""}</span>
+      </div>
+      <div class="pf-grid">${pmCards || '<div style="padding:40px;text-align:center;color:var(--text-muted)">Sin datos disponibles.</div>'}</div>`;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PLACEHOLDER
+  // ════════════════════════════════════════════════════════════════════════════
+  function loadPlaceholder(container, page) {
+    container.innerHTML = `
+      <div class="placeholder-page">
+        <div class="placeholder-icon">${page.icon}</div>
+        <div class="placeholder-title">${page.label}</div>
+        <div class="placeholder-desc">Este dashboard aún no ha sido configurado. Puedes conectarlo a cualquier board de Monday.com, Google Sheets, u otra fuente de datos.</div>
+        <div class="placeholder-hint">
+          Busca el objeto con <code>id: "${page.id}"</code> en el array <code>PAGES</code> y reemplaza <code>load: null</code> por tu función de carga, siguiendo el patrón de <code>loadIniciativas()</code>.
+        </div>
+      </div>`;
+  }
+
+  PAGES.forEach(p => { if (!p.load) p.load = (c) => loadPlaceholder(c, p); });
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // INIT
+  // ════════════════════════════════════════════════════════════════════════════
+  buildNav();
+  navigate("overview");
+</script>
+</body>
+</html>
